@@ -13,7 +13,7 @@ var pattern = [[1]];
 
 
 // camera position
-camX = -40;
+camX = 0;
 camY = 0;
 zoomFactor = 1;
 
