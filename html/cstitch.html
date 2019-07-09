@@ -4,11 +4,14 @@
 	<head>
 		<link rel="stylesheet" type="text/css" href="../css/style.css"/>
 	</head>
-	<body> 
+	<body onload="onLoad()"> 
 		<div class="container">
-			<p>
+			<p class="title">
 				Cross Stitch
 			</p>
+			<svg id="aida" width="600" height="600" onmousedown="onClick(evt)">
+			</svg>
 		</div>
+		<script src="../js/cstitch.js"></script>
 	</body>
 </html>

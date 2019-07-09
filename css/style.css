@@ -1,13 +1,19 @@
 .container {
 	margin:0 auto;
-	width:80%;
-	max-width:1000px;
-	min-width:800px;
+	width:900px;
 	/* align:center; */
+}
+
+.title {
+	text-align:center;
 }
 
 body {
 	font-size:12pt;
 	font-family: 'Open Sans', sans-serif;
 	font-weight:bold;
+}
+
+#aida {
+	float:right;
 }
