@@ -1,29 +1,33 @@
-// svgElement.style.setProperty
+// SVG properties
 var aida = document.getElementById("aida");
 var width = aida.width.baseVal.value;
 var height = aida.height.baseVal.value;
-//aida.viewBox = "0 0 "+width+" "+height;
-var gridSize = 16;
+var gridSize = 15;
 
+// cross-stitch pattern initialising (1x1 array)
 var patternX = 0;
 var patternY = 0;
-var patternWidth = 1;
-var patternHeight = 1;
-var pattern = [[1]];
+var patternWidth = width/gridSize;
+var patternHeight = height/gridSize;
+var pattern = [[0]];
 
-
-// camera position
-camX = 0;
-camY = 0;
-zoomFactor = 1;
-
+// misc styling
 var bgColor = "#EEEEEE";
 var gridStyle = "fill:rgba(0,0,0,.2)";
 
+// cursor reticle thing
+var cursor;
+var mx;
+var my;
+
 function onLoad() {
-	// define the grid
-	aida.innerHTML = '<rect width="100%" height="100%" fill="'+bgColor+'" />'; // todo: change fill to be picked background colour
+	// bg
+	aida.innerHTML = `<rect width="100%" height="100%" fill="${bgColor}" />`; // todo: change fill to be picked background colour
+	// grid
 	aida.innerHTML += gridLines();
+	// hover reticle
+	aida.innerHTML += `<rect id="cursor" width="${gridSize}" height="${gridSize}" style="fill:rgba(0,0,0,.5)"></rect>`;
+	cursor = aida.getElementById("cursor");
 }
 
 function onClick(evt) {
@@ -31,10 +35,7 @@ function onClick(evt) {
 		case 0: // lb
 			//aida.innerHTML += '<circle cx="'+evt.offsetX+'" cy="'+evt.offsetY+'" r="3" style="fill:rgb(0,0,0)"></circle>';
 			// get which box ur in
-			var x0 = Math.floor((evt.offsetX-camX) / gridSize);
-			var y0 = Math.floor(evt.offsetY / gridSize);
-			
-			addToPattern(x0,y0);
+			addToPattern(gridX(mx),gridY(my));
 			
 			//aida.innerHTML += '<rect ></rect>';
 		break;
@@ -44,8 +45,24 @@ function onClick(evt) {
 	}
 }
 
-function addToPattern(x, y) {
-	// coordinates under minimum - bump up all values
+function onMouseMove(evt) {
+	// update cursor position
+	mx = evt.offsetX;
+	my = evt.offsetY;
+	
+	cursor.x.baseVal.value = gridX(mx) * gridSize;
+	cursor.y.baseVal.value = gridY(my) * gridSize;
+}
+
+function gridX(x0) {
+	return Math.floor(x0 / gridSize);
+}
+function gridY(y0) {
+	return Math.floor(y0 / gridSize);
+}
+
+function addToPattern(x,y) {
+	// coordinates under minimum - 'bump up' all values
 	if (x < 0) {
 		for (var i = patternWidth-1; i >= 0; i--) {
 			for (var j = 0; j < patternHeight; j++) {
@@ -57,22 +74,21 @@ function addToPattern(x, y) {
 	}
 	if (y < 0) {
 	}
+	// coordinates over maximum - fill with zeroes
 	if (x > patternWidth) {
 		patternWidth = x+1;
 	}
 	
 	pattern[x,y] = 1;
-	
-	
 }
 
 function gridLines() {
 	var ret = "";
-	for (var i = -camX; i <= -camX+width; i += gridSize) {
-		ret += '<rect id="gridline" x="'+(i-1)+'" y="0" width="2" height="'+height+'" style="fill:rgba(0,0,0,.2)"></rect>';
+	for (var i = 0; i <= width; i += gridSize) {
+		ret += `<rect class="gridline" x="${i-1}" y="0" width="2" height="${height}" style="${gridStyle}"></rect>`;
 	}
-	for (var i = camY; i <= camY+height; i += gridSize) {
-		ret += '<rect id="gridline" x="0" y="'+(i-1)+'" width="'+width+'" height="2" style="'+gridStyle+'"></rect>';
+	for (var i = 0; i <= height; i += gridSize) {
+		ret += `<rect class="gridline" x="0" y="${i-1}" width="${width}" height="2" style="${gridStyle}"></rect>`;
 	}
 	
 	return ret;
