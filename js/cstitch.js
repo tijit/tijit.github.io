@@ -79,9 +79,9 @@ function update() {
 
 function planPath(grid) {
 	// create empty initial state
-	let state = new Array(grid.length); // keeps track of whether each square is empty (0), half (1), or full (2)
+	let state = new Array(grid.length); // 0=banned, 1=needed, 2=half, 3=full
 	for (let i = 0; i < grid.length; i++) {
-		state[i] = new Array(grid[i].length).fill(0);
+		state[i] = grid[i].slice(); // copy
 	}
 
 	// find a place to start stitching
@@ -115,37 +115,33 @@ function planPath(grid) {
 		let stateS = state[cellX][cellY+1];
 		let stateW = state[cellX-1][cellY];
 		let stateE = state[cellX+1][cellY];
-		let needN = grid[cellX][cellY-1];
-		let needS = grid[cellX][cellY+1];
-		let needW = grid[cellX-1][cellY];
-		let needE = grid[cellX+1][cellY];
 
 		if (overtime) {
 			switch (stateHere) {
-				case 0:
+				case 1:
 					// under-diagonal
 					if (prevX === cellX && prevY === cellY + 1) {
 						// bottom left to top right
 						path.push([cellX + 1, cellY]);
-						state[cellX][cellY] = 1;
+						state[cellX][cellY] = 2;
 					} else if (prevX === cellX + 1 && prevY === cellY) {
 						// top right to bottom left
 						path.push([cellX, cellY + 1]);
-						state[cellX][cellY] = 1;
+						state[cellX][cellY] = 2;
 					} else {
 						console.error("wtf, on wrong hole to do under-diagonal");
 					}
 					break;
-				case 1:
+				case 2:
 					// over-diagonal
 					if (prevX === cellX && prevY === cellY) {
 						// top left to bottom right
 						path.push([cellX + 1, cellY + 1]);
-						state[cellX][cellY] = 2;
+						state[cellX][cellY] = 3;
 					} else if (prevX === cellX + 1 && prevY === cellY + 1) {
 						// bottom right to top left
 						path.push([cellX, cellY]);
-						state[cellX][cellY] = 2;
+						state[cellX][cellY] = 3;
 					} else {
 						console.error("wtf, on wrong hole to do over-diagonal");
 					}
@@ -156,18 +152,18 @@ function planPath(grid) {
 			}
 		} else {
 			switch (stateHere) {
-				case 1:
+				case 2:
 					// under-diagonal done, so find the next neighbour to start on
-					if (stateN === 0 && needN) {
+					if (stateN === 1) {
 						path.push([prevX,prevY-1]);
 						cellY -= 1;
-					} else if (stateE === 0 && needE) {
+					} else if (stateE === 1) {
 						path.push([prevX+1,prevY]);
 						cellX += 1;
-					} else if (stateW === 0 && needW) {
+					} else if (stateW === 1) {
 						path.push([prevX-1,prevY]);
 						cellX -= 1;
-					} else if (stateS === 0 && needS) {
+					} else if (stateS === 1) {
 						path.push([prevX,prevY+1]);
 						cellY += 1;
 					} else {
@@ -175,18 +171,18 @@ function planPath(grid) {
 						path.push([cellX,cellY]);
 					}
 					break;
-				case 2:
+				case 3:
 					// this stitch completed, so return to parent (which should be the only half-complete neighbour?
-					if (stateN === 1) {
+					if (stateN === 2) {
 						path.push([prevX,prevY-1]);
 						cellY -= 1;
-					} else if (stateW === 1) {
+					} else if (stateW === 2) {
 						path.push([prevX-1,prevY]);
 						cellX -= 1;
-					} else if (stateE === 1) {
+					} else if (stateE === 2) {
 						path.push([prevX+1,prevY]);
 						cellX += 1;
-					} else if (stateS === 1) {
+					} else if (stateS === 2) {
 						path.push([prevX,prevY+1]);
 						cellY += 1;
 					} else {
