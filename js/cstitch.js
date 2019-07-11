@@ -21,7 +21,7 @@ var pattern;
 // misc styling
 const bgColor = "#EEEEEE";
 const gridStyle = "rgba(0,0,0,.2)";
-const stitchStyle = "rgb(255,0,0)";
+var stitchStyle = "#FF0000";
 const backStyle = "rgb(0,0,255)";
 const transparent = "rgba(0,0,0,0)";
 
@@ -192,5 +192,27 @@ function testButton() {
 }
 
 function onBlur(input) {
-	
+	switch (input.id) {
+		case "col1":
+			var val = input.value;
+			/*
+			if (isValidColor(val)) {
+				stitchStyle = val;
+			}
+			else {
+				alert("test2");
+				input.value = stitchStyle;
+			}
+			*/
+		break;
+	}
 }
+
+function isValidColor(strColor) {
+	var s = new Option().style;
+	s.color = strColor;
+
+	// return 'false' if color wasn't assigned
+	return s.color == strColor.toLowerCase();
+}
+
