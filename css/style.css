@@ -16,4 +16,21 @@ body {
 
 #aida {
 	float:right;
+	width:600px;
+}
+
+#aidabuttons {
+	float:left;
+	text-align:center;
+	margin:0 auto;
+	width:300px;
+	
+}
+
+#aidabuttons button {
+	margin:16px;
+}
+
+#aidabuttons input {
+	margin:16px;
 }

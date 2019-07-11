@@ -1,38 +1,73 @@
-// SVG properties
-var aida = document.getElementById("aida");
-var width = aida.width;
-var height = aida.height;
-var gridSize = 15;
+// jessica trabilsie
+/*
 
-// cross-stitch pattern initialising (1x1 array)
-var patternX = 0;
-var patternY = 0;
-var patternWidth = width/gridSize;
-var patternHeight = height/gridSize;
-var pattern = [[0]];
+**TODO**
+move grid lines to separate canvas so dont have to render them multiple times ?
+^ only if performance actually becomes an issue!
+
+*/
+
+// SVG properties
+var aida;
+var width;
+var height;
+const gridSize = 20;
+
+// cross-stitch pattern initialising
+var patternWidth;
+var patternHeight;
+var pattern;
 
 // misc styling
-var bgColor = "#EEEEEE";
-var gridStyle = "rgba(0,0,0,.2)";
+const bgColor = "#EEEEEE";
+const gridStyle = "rgba(0,0,0,.2)";
+const stitchStyle = "rgb(255,0,0)";
+const backStyle = "rgb(0,0,255)";
+const transparent = "rgba(0,0,0,0)";
+
+// mouse & cursor tile coordinates
+var mx;
+var my;
+var mouseDragging;
+var mouseTargetState;
+var cursorX;
+var cursorY;
+
 
 function onLoad() {
-	// bg
-	drawBg();
-	// grid
-	drawGridLines();
+	aida = document.getElementById("aida");
+	width = aida.width;
+	height = aida.height;
+	
+	patternWidth = width/gridSize;
+	patternHeight = height/gridSize;
+	
+	mouseDragging = false;
+	mouseTargetState = 0;
+	
+	pattern = new Array(patternWidth);
+	for (var i = 0; i < patternWidth; i++) {
+		pattern[i] = new Array(patternHeight);
+		for (var j = 0; j < patternHeight; j++) {
+			pattern[i][j] = 0;
+		}
+	}
+	
+	aida.addEventListener("mousedown", onMouseDown);
+	aida.addEventListener("mousemove", onMouseMove);
+	aida.addEventListener("mouseleave", onMouseLeave);
+	aida.addEventListener("mouseup", onMouseUp);
+	aida.addEventListener("contextmenu", onContextMenu);
+	
+	draw();
 }
 
-function onClick(evt) {
-	var mx = evt.offsetX;
-	var my = evt.offsetY;
-
+function onMouseDown(evt) {
+	evt.preventDefault();
 	switch (evt.button) {
 		case 0: // lb
-			//aida.innerHTML += '<circle cx="'+evt.offsetX+'" cy="'+evt.offsetY+'" r="3" style="fill:rgb(0,0,0)"></circle>';
-			// get which box ur in
-			addToPattern(gridX(mx),gridY(my));
-			
-			//aida.innerHTML += '<rect ></rect>';
+			mouseDragging = true;
+			mouseTargetState = (pattern[cursorX][cursorY]+1) % 2;
 		break;
 		case 2: // rb
 			evt.preventDefault();
@@ -42,37 +77,56 @@ function onClick(evt) {
 
 function onMouseMove(evt) {
 	// update cursor position
-	drawBg();
-	drawGridLines();
-	drawCursor(gridX(evt.offsetX), gridY(evt.offsetY));
+	mx = evt.offsetX
+	my = evt.offsetY
+	
+	cursorX = gridX(mx);
+	cursorY = gridY(my);
+	
+	if (mouseDragging) {
+		pattern[cursorX][cursorY] = mouseTargetState;
+	}
+	
+	draw();
+}
+
+function onMouseLeave(evt) {
+	mouseDragging = false;
+	// hide cursor
+	mx = -gridSize;
+	my = -gridSize;
+	cursorX = -1;
+	cursorY = -1;
+	
+	draw();
+}
+
+function onMouseUp(evt) {
+	mouseDragging = false;
+}
+
+function onContextMenu(evt) {
+	evt.preventDefault();
 }
 
 function gridX(x0) {
-	return Math.floor(x0 / gridSize);
+	return Math.min(Math.max(0, Math.floor(x0 / gridSize)), patternWidth-1);
 }
 function gridY(y0) {
-	return Math.floor(y0 / gridSize);
+	return Math.min(Math.max(0, Math.floor(y0 / gridSize)), patternHeight-1);
 }
 
 function addToPattern(x,y) {
-	// coordinates under minimum - 'bump up' all values
-	if (x < 0) {
-		for (var i = patternWidth-1; i >= 0; i--) {
-			for (var j = 0; j < patternHeight; j++) {
-				pattern[i-x,j] = pattern[i,j];
-			}
-		}
-		patternWidth += x;
-		x = 0;
+	if (x > 0 && y > 0 && x < patternWidth && y < patternHeight) {
+		pattern[x][y] = (++pattern[x][y]) % 2;
 	}
-	if (y < 0) {
-	}
-	// coordinates over maximum - fill with zeroes
-	if (x > patternWidth) {
-		patternWidth = x+1;
-	}
-	
-	pattern[x,y] = 1;
+}
+
+function draw() {
+	drawBg();
+	drawGridLines();
+	drawStitches();
+	drawCursor(cursorX, cursorY);
 }
 
 function drawBg() {
@@ -90,16 +144,39 @@ function drawGridLines() {
 	
 	ctx.beginPath();
 	for (var i = 0; i <= width; i += gridSize) {
-		ctx.moveTo(i-1, 0);
-		ctx.lineTo(i-1, height);
+		ctx.moveTo(i, 0);
+		ctx.lineTo(i, height);
 	}
 	ctx.stroke();
 	ctx.beginPath();
 	for (var i = 0; i <= height; i += gridSize) {
-		ctx.moveTo(0, i-1);
-		ctx.lineTo(width, i-1);
+		ctx.moveTo(0, i);
+		ctx.lineTo(width, i);
 	}
 	ctx.stroke()
+}
+
+function drawStitches() {
+	var ctx = aida.getContext('2d');
+	
+	ctx.strokeStyle = stitchStyle;
+	ctx.lineWidth = 2;
+	
+	// todo: backstitches
+	
+	ctx.beginPath();	
+	for (var i = 0; i < patternWidth; i++) {
+		for (var j = 0; j < patternWidth; j++) {
+			if (pattern[i][j] == 1) {
+				ctx.moveTo((i)*gridSize,(j+1)*gridSize);
+				ctx.lineTo((i+1)*gridSize,(j)*gridSize);
+				// todo: move this into a separate loop so 2nd stitches are "over" the first ones
+				ctx.moveTo((i+1)*gridSize,(j+1)*gridSize);
+				ctx.lineTo((i)*gridSize,(j)*gridSize);
+			}
+		}
+	}
+	ctx.stroke();
 }
 
 function drawCursor(gridX, gridY) {
@@ -108,4 +185,12 @@ function drawCursor(gridX, gridY) {
 	// hover reticle
 	ctx.fillStyle = "rgba(0,0,0,.5)";
 	ctx.fillRect(gridX * gridSize, gridY * gridSize, gridSize, gridSize);
+}
+
+function testButton() {
+	//alert("test");
+}
+
+function onBlur(input) {
+	
 }

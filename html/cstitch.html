@@ -9,7 +9,11 @@
 			<p class="title">
 				Cross Stitch
 			</p>
-			<canvas id="aida" width="600" height="600" onmousedown="onClick(event)" onmousemove="onMouseMove(event)">
+			<div id="aidabuttons">
+				<button type="button" onclick="testButton()">Test Button</button>
+				<input type="text" id="col1" value="#FF0000" onblur="onBlur(this)">
+			</div>
+			<canvas id="aida" width="600" height="600">
 			</canvas>
 		</div>
 		<script src="../js/cstitch.js"></script>
