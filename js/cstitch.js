@@ -84,19 +84,6 @@ function planPath(grid) {
 		state[i] = new Array(grid[i].length).fill(0);
 	}
 
-	let path = [];
-	for (let y = 0; y < grid[0].length; y++) {
-		for (let x = 0; x < grid.length; x++) {
-			if (grid[x][y] === 1) {
-				path.push([x,y+1]);
-				path.push([x+1,y]);
-				path.push([x,y]);
-				path.push([x+1,y+1]);
-			}
-		}
-	}
-
-	/*
 	// find a place to start stitching
 	let path = [];
 	for (let y = 0; y < grid[0].length; y++) {
@@ -122,16 +109,29 @@ function planPath(grid) {
 		let prev = path[path.length - 1];
 		let prevX = prev[0];
 		let prevY = prev[1];
+
+		let stateHere = state[cellX][cellY];
+		let stateN = state[cellX][cellY-1];
+		let stateS = state[cellX][cellY+1];
+		let stateW = state[cellX-1][cellY];
+		let stateE = state[cellX+1][cellY];
+		let needN = grid[cellX][cellY-1];
+		let needS = grid[cellX][cellY+1];
+		let needW = grid[cellX-1][cellY];
+		let needE = grid[cellX+1][cellY];
+
 		if (overtime) {
-			switch (state[cellX][cellY]) {
+			switch (stateHere) {
 				case 0:
 					// under-diagonal
 					if (prevX === cellX && prevY === cellY + 1) {
 						// bottom left to top right
 						path.push([cellX + 1, cellY]);
+						state[cellX][cellY] = 1;
 					} else if (prevX === cellX + 1 && prevY === cellY) {
 						// top right to bottom left
 						path.push([cellX, cellY + 1]);
+						state[cellX][cellY] = 1;
 					} else {
 						console.error("wtf, on wrong hole to do under-diagonal");
 					}
@@ -141,9 +141,11 @@ function planPath(grid) {
 					if (prevX === cellX && prevY === cellY) {
 						// top left to bottom right
 						path.push([cellX + 1, cellY + 1]);
+						state[cellX][cellY] = 2;
 					} else if (prevX === cellX + 1 && prevY === cellY + 1) {
 						// bottom right to top left
 						path.push([cellX, cellY]);
+						state[cellX][cellY] = 2;
 					} else {
 						console.error("wtf, on wrong hole to do over-diagonal");
 					}
@@ -153,10 +155,44 @@ function planPath(grid) {
 					break;
 			}
 		} else {
-			switch (state[cellX][cellY]) {
+			switch (stateHere) {
 				case 1:
+					// under-diagonal done, so find the next neighbour to start on
+					if (stateN === 0 && needN) {
+						path.push([prevX,prevY-1]);
+						cellY -= 1;
+					} else if (stateE === 0 && needE) {
+						path.push([prevX+1,prevY]);
+						cellX += 1;
+					} else if (stateW === 0 && needW) {
+						path.push([prevX-1,prevY]);
+						cellX -= 1;
+					} else if (stateS === 0 && needS) {
+						path.push([prevX,prevY+1]);
+						cellY += 1;
+					} else {
+						// Time to finish this stitch
+						path.push([cellX,cellY]);
+					}
 					break;
 				case 2:
+					// this stitch completed, so return to parent (which should be the only half-complete neighbour?
+					if (stateN === 1) {
+						path.push([prevX,prevY-1]);
+						cellY -= 1;
+					} else if (stateW === 1) {
+						path.push([prevX-1,prevY]);
+						cellX -= 1;
+					} else if (stateE === 1) {
+						path.push([prevX+1,prevY]);
+						cellX += 1;
+					} else if (stateS === 1) {
+						path.push([prevX,prevY+1]);
+						cellY += 1;
+					} else {
+						// Finished!
+						return path;
+					}
 					break;
 				default:
 					console.error("wtf, shouldn't stitch under this cell");
@@ -165,9 +201,6 @@ function planPath(grid) {
 		}
 		overtime = !overtime;
 	}
-	 */
-
-	return path;
 }
 
 function onMouseDown(evt) {
@@ -304,7 +337,7 @@ function drawCursor(gridX, gridY) {
 function drawPath() {
 	let ctx = aida.getContext('2d');
 
-	let hue = 0;
+	let hue = 180;
 	let prev = path[0];
 	for (let i = 1; i < path.length; i++) {
 		let next = path[i];
@@ -321,7 +354,7 @@ function drawPath() {
 		ctx.lineTo(next[0] * gridSize, next[1] * gridSize);
 		ctx.stroke();
 
-		hue = (hue + 1) % 360;
+		hue = (hue + 10) % 360;
 		prev = next;
 	}
 	ctx.setLineDash([]);
