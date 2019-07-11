@@ -17,8 +17,12 @@ Jessica Trabilsie
 				Cross Stitch
 			</p>
 			<div id="aidabuttons">
-				<button type="button" onclick="testButton()">Test Button</button>
-				<input type="text" id="col1" value="#FF0000" onblur="onBlur(this)">
+				<button type="button" onclick="testButton()">Test Button</button> <br/>
+				<input type="text" id="col1" value="red" onblur="onBlur(this)"> <br/>
+				<input type="text" id="col2" value="red" readonly="true" onblur="onBlur(this)"> <br/>
+				<label><input type="checkbox" id="lock" checked="on" onclick="lockCheck(this)">Locked</label> <br/>
+				<input type="text" id="colbg" value="#EEEEEE" onblur="onBlur(this)"> <br/>
+				
 			</div>
 			<canvas id="aida" width="600" height="600">
 			</canvas>
