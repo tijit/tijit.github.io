@@ -205,15 +205,8 @@ function onBlur(input) {
 	switch (input.id) {
 		case "col1":
 			var val = input.value;
-			/*
-			if (isValidColor(val)) {
-				stitchStyle = val;
-			}
-			else {
-				alert("test2");
-				input.value = stitchStyle;
-			}
-			*/
+			// fix it later
+			stitchStyle = input.value;
 		break;
 	}
 }
