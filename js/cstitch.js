@@ -87,18 +87,19 @@ function drawGridLines() {
 
 	ctx.strokeStyle = gridStyle;
 	ctx.lineWidth = 2;
+	
+	ctx.beginPath();
 	for (var i = 0; i <= width; i += gridSize) {
-		ctx.beginPath();
 		ctx.moveTo(i-1, 0);
 		ctx.lineTo(i-1, height);
-		ctx.stroke();
 	}
+	ctx.stroke();
+	ctx.beginPath();
 	for (var i = 0; i <= height; i += gridSize) {
-		ctx.beginPath();
 		ctx.moveTo(0, i-1);
 		ctx.lineTo(width, i-1);
-		ctx.stroke();
 	}
+	ctx.stroke()
 }
 
 function drawCursor(gridX, gridY) {
