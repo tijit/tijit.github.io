@@ -2,8 +2,7 @@
 /*
 
 **TODO**
-move grid lines to separate canvas so dont have to render them multiple times ?
-^ only if performance actually becomes an issue!
+if performance is an issue move grid lines to separate canvas so dont have to render them multiple times ?
 
 */
 
@@ -19,10 +18,10 @@ var patternHeight;
 var pattern;
 
 // misc styling
-const bgColor = "#EEEEEE";
-const gridStyle = "rgba(0,0,0,.2)";
-var stitchStyle = "#FF0000";
-const backStyle = "rgb(0,0,255)";
+var bgColor = "#EEEEEE";
+const gridStyle = "rgba(0,0,0,.2)"; // todo: different grid style for dark backgrounds ie rgba(255,255,255,.2)
+var stitchStyle = "red";
+var backStyle = "red";
 const transparent = "rgba(0,0,0,0)";
 
 // mouse & cursor tile coordinates
@@ -32,7 +31,6 @@ var mouseDragging;
 var mouseTargetState;
 var cursorX;
 var cursorY;
-
 
 function onLoad() {
 	aida = document.getElementById("aida");
@@ -169,18 +167,26 @@ function drawGridLines() {
 function drawStitches() {
 	var ctx = aida.getContext('2d');
 	
-	ctx.strokeStyle = stitchStyle;
 	ctx.lineWidth = 2;
-	
-	// todo: backstitches
-	
+	// forward slashes
+	ctx.strokeStyle = stitchStyle;
 	ctx.beginPath();	
 	for (var i = 0; i < patternWidth; i++) {
 		for (var j = 0; j < patternWidth; j++) {
 			if (pattern[i][j] == 1) {
 				ctx.moveTo((i)*gridSize,(j+1)*gridSize);
 				ctx.lineTo((i+1)*gridSize,(j)*gridSize);
-				// todo: move this into a separate loop so 2nd stitches are "over" the first ones
+			}
+		}
+	}
+	ctx.stroke();
+	
+	// back slashes
+	ctx.strokeStyle = backStyle;
+	ctx.beginPath();
+	for (var i = 0; i < patternWidth; i++) {
+		for (var j = 0; j < patternWidth; j++) {
+			if (pattern[i][j] == 1) {
 				ctx.moveTo((i+1)*gridSize,(j+1)*gridSize);
 				ctx.lineTo((i)*gridSize,(j)*gridSize);
 			}
@@ -191,7 +197,6 @@ function drawStitches() {
 
 function drawCursor(gridX, gridY) {
 	var ctx = aida.getContext('2d');
-
 	// hover reticle
 	ctx.fillStyle = "rgba(0,0,0,.5)";
 	ctx.fillRect(gridX * gridSize, gridY * gridSize, gridSize, gridSize);
@@ -205,9 +210,31 @@ function onBlur(input) {
 	switch (input.id) {
 		case "col1":
 			var val = input.value;
-			// fix it later
+			// fixme
 			stitchStyle = input.value;
+			if (document.getElementById("lock").checked) {
+				document.getElementById("col2").value = val;
+				backStyle = stitchStyle;
+			}
 		break;
+		case "col2":
+			backStyle = input.value;
+		break;
+		case "colbg":
+			bgColor = input.value;
+		break;
+	}
+}
+
+function lockCheck(input) {
+	var col2 = document.getElementById("col2");
+	if (input.checked == true) {
+		col2.readOnly = true;
+		col2.value = document.getElementById("col1").value;
+		backStyle = stitchStyle;
+	}
+	else {
+		col2.readOnly = false;
 	}
 }
 
