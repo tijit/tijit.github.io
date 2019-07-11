@@ -85,118 +85,60 @@ function planPath(grid) {
 	}
 
 	// find a place to start stitching
-	let path = [];
+	let start = [];
 	for (let y = 0; y < grid[0].length; y++) {
 		for (let x = 0; x < grid.length; x++) {
-			if (grid[x][y] === 1) {
-				path.push([x,y+1]);
+			if (state[x][y] === 1) {
+				start = [x, y];
 				break;
 			}
 		}
-		if (path.length > 0) {
+		if (start.length > 0) {
 			break;
 		}
 	}
-	if (path.length === 0) {
+	if (start.length === 0) {
 		return undefined;
 	}
 
-	// simple cellular automata that is basically greedy DFS, in direction N-E-W-S
-	let cellX = path[0][0];
-	let cellY = path[0][1] - 1;
-	let overtime = true;
-	while (true) {
-		let prev = path[path.length - 1];
-		let prevX = prev[0];
-		let prevY = prev[1];
+	// Generate order in which to visit cells
+	// Cells are visited in a greedy DFS pattern
+	const directions = [[0, -1], [+1, 0], [-1, 0], [0, +1]];
+	// Each cell will be in the list exactly twice - when it is visited for the first and last time
+	let stack = [start];
+	let list = [];
+	// Initial state
+	while (stack.length > 0) {
+		let curr = stack[stack.length - 1];
 
-		let stateHere = state[cellX][cellY];
-		let stateN = state[cellX][cellY-1];
-		let stateS = state[cellX][cellY+1];
-		let stateW = state[cellX-1][cellY];
-		let stateE = state[cellX+1][cellY];
+		if (state[curr[0]][curr[1]] === 1) {
+			// Just entered this cell for the first time
+			state[curr[0]][curr[1]]++;
+			list.push(curr);
+		}
 
-		if (overtime) {
-			switch (stateHere) {
-				case 1:
-					// under-diagonal
-					if (prevX === cellX && prevY === cellY + 1) {
-						// bottom left to top right
-						path.push([cellX + 1, cellY]);
-						state[cellX][cellY] = 2;
-					} else if (prevX === cellX + 1 && prevY === cellY) {
-						// top right to bottom left
-						path.push([cellX, cellY + 1]);
-						state[cellX][cellY] = 2;
-					} else {
-						console.error("wtf, on wrong hole to do under-diagonal");
-					}
-					break;
-				case 2:
-					// over-diagonal
-					if (prevX === cellX && prevY === cellY) {
-						// top left to bottom right
-						path.push([cellX + 1, cellY + 1]);
-						state[cellX][cellY] = 3;
-					} else if (prevX === cellX + 1 && prevY === cellY + 1) {
-						// bottom right to top left
-						path.push([cellX, cellY]);
-						state[cellX][cellY] = 3;
-					} else {
-						console.error("wtf, on wrong hole to do over-diagonal");
-					}
-					break;
-				default:
-					console.error("wtf, shouldn't stitch over this cell");
-					break;
-			}
-		} else {
-			switch (stateHere) {
-				case 2:
-					// under-diagonal done, so find the next neighbour to start on
-					if (stateN === 1) {
-						path.push([prevX,prevY-1]);
-						cellY -= 1;
-					} else if (stateE === 1) {
-						path.push([prevX+1,prevY]);
-						cellX += 1;
-					} else if (stateW === 1) {
-						path.push([prevX-1,prevY]);
-						cellX -= 1;
-					} else if (stateS === 1) {
-						path.push([prevX,prevY+1]);
-						cellY += 1;
-					} else {
-						// Time to finish this stitch
-						path.push([cellX,cellY]);
-					}
-					break;
-				case 3:
-					// this stitch completed, so return to parent (which should be the only half-complete neighbour?
-					if (stateN === 2) {
-						path.push([prevX,prevY-1]);
-						cellY -= 1;
-					} else if (stateW === 2) {
-						path.push([prevX-1,prevY]);
-						cellX -= 1;
-					} else if (stateE === 2) {
-						path.push([prevX+1,prevY]);
-						cellX += 1;
-					} else if (stateS === 2) {
-						path.push([prevX,prevY+1]);
-						cellY += 1;
-					} else {
-						// Finished!
-						return path;
-					}
-					break;
-				default:
-					console.error("wtf, shouldn't stitch under this cell");
-					break;
+		// Either just entered, or returned to this cell
+		let foundNext = false;
+		for (let i = 0; i < directions.length; i++) {
+			let dir = directions[i];
+			let next = [curr[0] + dir[0], curr[1] + dir[1]];
+			if (state[next[0]][next[1]] === 1) {
+				// Valid next cell
+				foundNext = true;
+				stack.push(next);
+				break;
 			}
 		}
-		overtime = !overtime;
+		if (foundNext) {
+			continue;
+		}
+
+		// Nowhere to go, return to parent
+		list.push(curr);
+		stack.pop();
 	}
+
+	return list; // TODO: derive stitch path from the list of cells visited
 }
 
 function onMouseDown(evt) {
@@ -338,16 +280,16 @@ function drawPath() {
 	for (let i = 1; i < path.length; i++) {
 		let next = path[i];
 
-		ctx.strokeStyle = `hsl(${hue}, 100%, 40%)`;
+		ctx.strokeStyle = `hsl(${hue}, 100%, 25%)`;
 		if (i % 2 === 0) {
-			ctx.setLineDash([2,2]);
+			// ctx.setLineDash([2,2]);
 		} else {
 			ctx.setLineDash([]);
 		}
 
 		ctx.beginPath();
-		ctx.moveTo(prev[0] * gridSize, prev[1] * gridSize);
-		ctx.lineTo(next[0] * gridSize, next[1] * gridSize);
+		ctx.moveTo(prev[0] * gridSize + gridSize / 2, prev[1] * gridSize + gridSize / 2);
+		ctx.lineTo(next[0] * gridSize + gridSize / 2, next[1] * gridSize + gridSize / 2);
 		ctx.stroke();
 
 		hue = (hue + 10) % 360;
