@@ -1,7 +1,7 @@
 // SVG properties
 var aida = document.getElementById("aida");
-var width = aida.width.baseVal.value;
-var height = aida.height.baseVal.value;
+var width = aida.width;
+var height = aida.height;
 var gridSize = 15;
 
 // cross-stitch pattern initialising (1x1 array)
@@ -13,24 +13,19 @@ var pattern = [[0]];
 
 // misc styling
 var bgColor = "#EEEEEE";
-var gridStyle = "fill:rgba(0,0,0,.2)";
-
-// cursor reticle thing
-var cursor;
-var mx;
-var my;
+var gridStyle = "rgba(0,0,0,.2)";
 
 function onLoad() {
 	// bg
-	aida.innerHTML = `<rect width="100%" height="100%" fill="${bgColor}" />`; // todo: change fill to be picked background colour
+	drawBg();
 	// grid
-	aida.innerHTML += gridLines();
-	// hover reticle
-	aida.innerHTML += `<rect id="cursor" width="${gridSize}" height="${gridSize}" style="fill:rgba(0,0,0,.5)"></rect>`;
-	cursor = aida.getElementById("cursor");
+	drawGridLines();
 }
 
 function onClick(evt) {
+	var mx = evt.offsetX;
+	var my = evt.offsetY;
+
 	switch (evt.button) {
 		case 0: // lb
 			//aida.innerHTML += '<circle cx="'+evt.offsetX+'" cy="'+evt.offsetY+'" r="3" style="fill:rgb(0,0,0)"></circle>';
@@ -47,11 +42,9 @@ function onClick(evt) {
 
 function onMouseMove(evt) {
 	// update cursor position
-	mx = evt.offsetX;
-	my = evt.offsetY;
-	
-	cursor.x.baseVal.value = gridX(mx) * gridSize;
-	cursor.y.baseVal.value = gridY(my) * gridSize;
+	drawBg();
+	drawGridLines();
+	drawCursor(gridX(evt.offsetX), gridY(evt.offsetY));
 }
 
 function gridX(x0) {
@@ -82,14 +75,36 @@ function addToPattern(x,y) {
 	pattern[x,y] = 1;
 }
 
-function gridLines() {
-	var ret = "";
+function drawBg() {
+	var ctx = aida.getContext('2d');
+
+	ctx.fillStyle = bgColor; // todo: change fill to be picked background colour
+	ctx.fillRect(0, 0, width, height);
+}
+
+function drawGridLines() {
+	var ctx = aida.getContext('2d');
+
+	ctx.strokeStyle = gridStyle;
+	ctx.lineWidth = 2;
 	for (var i = 0; i <= width; i += gridSize) {
-		ret += `<rect class="gridline" x="${i-1}" y="0" width="2" height="${height}" style="${gridStyle}"></rect>`;
+		ctx.beginPath();
+		ctx.moveTo(i-1, 0);
+		ctx.lineTo(i-1, height);
+		ctx.stroke();
 	}
 	for (var i = 0; i <= height; i += gridSize) {
-		ret += `<rect class="gridline" x="0" y="${i-1}" width="${width}" height="2" style="${gridStyle}"></rect>`;
+		ctx.beginPath();
+		ctx.moveTo(0, i-1);
+		ctx.lineTo(width, i-1);
+		ctx.stroke();
 	}
-	
-	return ret;
+}
+
+function drawCursor(gridX, gridY) {
+	var ctx = aida.getContext('2d');
+
+	// hover reticle
+	ctx.fillStyle = "rgba(0,0,0,.5)";
+	ctx.fillRect(gridX * gridSize, gridY * gridSize, gridSize, gridSize);
 }
