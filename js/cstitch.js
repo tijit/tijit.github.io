@@ -58,8 +58,22 @@ function onLoad() {
 	aida.addEventListener("mouseleave", onMouseLeave);
 	aida.addEventListener("mouseup", onMouseUp);
 	aida.addEventListener("contextmenu", onContextMenu);
-	
+
+	mainLoop();
+}
+
+function mainLoop() {
+	window.requestAnimationFrame(mainLoop); // best practice according to https://developer.mozilla.org/en-US/docs/Games/Anatomy
+
+	update();
 	draw();
+}
+
+function update() {
+	var time = new Date();
+	var millis = time.getMilliseconds();
+
+	// Do logic stuff
 }
 
 function onMouseDown(evt) {
@@ -86,8 +100,6 @@ function onMouseMove(evt) {
 	if (mouseDragging) {
 		pattern[cursorX][cursorY] = mouseTargetState;
 	}
-	
-	draw();
 }
 
 function onMouseLeave(evt) {
@@ -97,8 +109,6 @@ function onMouseLeave(evt) {
 	my = -gridSize;
 	cursorX = -1;
 	cursorY = -1;
-	
-	draw();
 }
 
 function onMouseUp(evt) {
