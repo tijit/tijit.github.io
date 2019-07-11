@@ -33,6 +33,8 @@ var mouseTargetState;
 var cursorX;
 var cursorY;
 
+// stitching path
+var path;
 
 function onLoad() {
 	aida = document.getElementById("aida");
@@ -73,7 +75,100 @@ function update() {
 	var time = new Date();
 	var millis = time.getMilliseconds();
 
-	// Do logic stuff
+	path = planPath(pattern);
+}
+
+function planPath(grid) {
+	// create empty initial state
+	let state = new Array(grid.length); // keeps track of whether each square is empty (0), half (1), or full (2)
+	for (let i = 0; i < grid.length; i++) {
+		state[i] = new Array(grid[i].length).fill(0);
+	}
+
+	let path = [];
+	for (let y = 0; y < grid[0].length; y++) {
+		for (let x = 0; x < grid.length; x++) {
+			if (grid[x][y] === 1) {
+				path.push([x,y+1]);
+				path.push([x+1,y]);
+				path.push([x,y]);
+				path.push([x+1,y+1]);
+			}
+		}
+	}
+
+	/*
+	// find a place to start stitching
+	let path = [];
+	for (let y = 0; y < grid[0].length; y++) {
+		for (let x = 0; x < grid.length; x++) {
+			if (grid[x][y] === 1) {
+				path.push([x,y+1]);
+				break;
+			}
+		}
+		if (path.length > 0) {
+			break;
+		}
+	}
+	if (path.length === 0) {
+		return undefined;
+	}
+
+	// simple cellular automata that is basically greedy DFS, in direction N-E-W-S
+	let cellX = path[0][0];
+	let cellY = path[0][1] - 1;
+	let overtime = true;
+	while (true) {
+		let prev = path[path.length - 1];
+		let prevX = prev[0];
+		let prevY = prev[1];
+		if (overtime) {
+			switch (state[cellX][cellY]) {
+				case 0:
+					// under-diagonal
+					if (prevX === cellX && prevY === cellY + 1) {
+						// bottom left to top right
+						path.push([cellX + 1, cellY]);
+					} else if (prevX === cellX + 1 && prevY === cellY) {
+						// top right to bottom left
+						path.push([cellX, cellY + 1]);
+					} else {
+						console.error("wtf, on wrong hole to do under-diagonal");
+					}
+					break;
+				case 1:
+					// over-diagonal
+					if (prevX === cellX && prevY === cellY) {
+						// top left to bottom right
+						path.push([cellX + 1, cellY + 1]);
+					} else if (prevX === cellX + 1 && prevY === cellY + 1) {
+						// bottom right to top left
+						path.push([cellX, cellY]);
+					} else {
+						console.error("wtf, on wrong hole to do over-diagonal");
+					}
+					break;
+				default:
+					console.error("wtf, shouldn't stitch over this cell");
+					break;
+			}
+		} else {
+			switch (state[cellX][cellY]) {
+				case 1:
+					break;
+				case 2:
+					break;
+				default:
+					console.error("wtf, shouldn't stitch under this cell");
+					break;
+			}
+		}
+		overtime = !overtime;
+	}
+	 */
+
+	return path;
 }
 
 function onMouseDown(evt) {
@@ -137,6 +232,9 @@ function draw() {
 	drawGridLines();
 	drawStitches();
 	drawCursor(cursorX, cursorY);
+	if (path) {
+		drawPath();
+	}
 }
 
 function drawBg() {
@@ -195,6 +293,32 @@ function drawCursor(gridX, gridY) {
 	// hover reticle
 	ctx.fillStyle = "rgba(0,0,0,.5)";
 	ctx.fillRect(gridX * gridSize, gridY * gridSize, gridSize, gridSize);
+}
+
+function drawPath() {
+	let ctx = aida.getContext('2d');
+
+	let hue = 0;
+	let prev = path[0];
+	for (let i = 1; i < path.length; i++) {
+		let next = path[i];
+
+		ctx.strokeStyle = `hsl(${hue}, 100%, 40%)`;
+		if (i % 2 === 0) {
+			ctx.setLineDash([2,2]);
+		} else {
+			ctx.setLineDash([]);
+		}
+
+		ctx.beginPath();
+		ctx.moveTo(prev[0] * gridSize, prev[1] * gridSize);
+		ctx.lineTo(next[0] * gridSize, next[1] * gridSize);
+		ctx.stroke();
+
+		hue = (hue + 1) % 360;
+		prev = next;
+	}
+	ctx.setLineDash([]);
 }
 
 function testButton() {
