@@ -327,6 +327,7 @@ function onMouseDown(evt) {
 		case 0: // lb
 			mouseDragging = true;
 			mouseTargetState = (pattern[cursorX][cursorY]+1) % 2;
+			onMouseMove(evt);
 		break;
 		case 2: // rb
 			evt.preventDefault();
@@ -343,7 +344,7 @@ function onMouseMove(evt) {
 	cursorY = gridY(my);
 	
 	if (mouseDragging) {
-		pattern[cursorX][cursorY] = mouseTargetState;
+		addToPattern(cursorX, cursorY, mouseTargetState);
 	}
 }
 
@@ -371,9 +372,9 @@ function gridY(y0) {
 	return Math.min(Math.max(0, Math.floor(y0 / gridSize)), patternHeight-1);
 }
 
-function addToPattern(x,y) {
-	if (x > 0 && y > 0 && x < patternWidth && y < patternHeight) {
-		pattern[x][y] = (++pattern[x][y]) % 2;
+function addToPattern(x, y, state) {
+	if (x > 0 && y > 0 && x < patternWidth-1 && y < patternHeight-1) {
+		pattern[x][y] = state;
 	}
 }
 
@@ -381,10 +382,10 @@ function draw() {
 	drawBg();
 	drawGridLines();
 	drawStitches();
-	drawCursor(cursorX, cursorY);
 	if (path) {
 		drawPath();
 	}
+	drawCursor(cursorX, cursorY);
 }
 
 function drawBg() {
@@ -454,10 +455,12 @@ function drawCursor(gridX, gridY) {
 
 function drawPath() {
 	let ctx = aida.getContext('2d');
+	
+	let slider = document.getElementById("animationslider");
 
 	let hue = 180;
 	let prev = path[0];
-	for (let i = 1; i < path.length; i++) {
+	for (let i = 1; i < path.length * slider.value; i++) {
 		let next = path[i];
 
 		ctx.strokeStyle = `hsl(${hue}, 100%, 25%)`;
