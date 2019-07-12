@@ -147,7 +147,7 @@ function onMouseDown(evt) {
 		case 0: // lb
 			mouseDragging = true;
 			mouseTargetState = (pattern[cursorX][cursorY]+1) % 2;
-			onMouseMove(evt);
+			onMouseMove(evt); // idk if this is valid syntax but idc
 		break;
 		case 2: // rb
 			evt.preventDefault();
@@ -159,6 +159,8 @@ function onMouseMove(evt) {
 	// update cursor position
 	mx = evt.offsetX
 	my = evt.offsetY
+	
+	// todo: if difference between previous cursor position and new position dont touch use a line drawing algorithm to connect them
 	
 	cursorX = gridX(mx);
 	cursorY = gridY(my);
