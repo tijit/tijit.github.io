@@ -79,12 +79,13 @@ function update() {
 
 function planPath(grid) {
 	// create empty initial state
-	let state = new Array(grid.length); // 0=banned, 1=needed, 2=half, 3=full
+	// TODO: Make and use a util function to copy 2d arrays
+	let state = new Array(grid.length); // 0=banned, 1=needed, 2=half, 3=full // TODO: Use enum?
 	for (let i = 0; i < grid.length; i++) {
-		state[i] = grid[i].slice(); // copy
+		state[i] = grid[i].slice(); // .slice is javascript way to (shallow) copy
 	}
 
-	// find a place to start stitching
+	// find a place to start stitching // TODO: Allow user to specify this
 	let start = [];
 	for (let y = 0; y < grid[0].length; y++) {
 		for (let x = 0; x < grid.length; x++) {
@@ -98,23 +99,23 @@ function planPath(grid) {
 		}
 	}
 	if (start.length === 0) {
-		return undefined;
+		return undefined; // TODO: Learn whether 'undefined' is good practice
 	}
 
 	// Generate order in which to visit cells
 	// Cells are visited in a greedy DFS pattern
-	const directions = [[0, -1], [+1, 0], [-1, 0], [0, +1]];
+	const directions = [[0, -1], [+1, 0], [-1, 0], [0, +1]]; // TODO: Change order?
 	// Each cell will be in the list exactly twice - when it is visited for the first and last time
 	let stack = [start];
-	let list = [];
+	let cellList = []; // each element is [x, y, s], where s is 1 (under-diagonal) or 2 (over-diagonal)
 	// Initial state
 	while (stack.length > 0) {
 		let curr = stack[stack.length - 1];
 
 		if (state[curr[0]][curr[1]] === 1) {
 			// Just entered this cell for the first time
-			state[curr[0]][curr[1]]++;
-			list.push(curr);
+			state[curr[0]][curr[1]] = 2;
+			cellList.push([curr[0], curr[1], 1]);
 		}
 
 		// Either just entered, or returned to this cell
@@ -122,6 +123,7 @@ function planPath(grid) {
 		for (let i = 0; i < directions.length; i++) {
 			let dir = directions[i];
 			let next = [curr[0] + dir[0], curr[1] + dir[1]];
+			// TODO: Check whether next is in bounds of grid
 			if (state[next[0]][next[1]] === 1) {
 				// Valid next cell
 				foundNext = true;
@@ -134,11 +136,189 @@ function planPath(grid) {
 		}
 
 		// Nowhere to go, return to parent
-		list.push(curr);
+		cellList.push([curr[0], curr[1], 2]);
 		stack.pop();
 	}
 
-	return list; // TODO: derive stitch path from the list of cells visited
+	// Turn the list of cells to visit into a list of holes to visit
+	let holeList = new Array(2 * cellList.length); // Hole count is twice the cell-visit count
+	// Find everywhere in the sequence that does an over-diagonal (2) then an under-diagonal (1)
+	let prevDiagType = 2; // Ensures beginning of sequence is treated as 2,1
+	for (let cellI = 0; cellI <= /* intentional! */ cellList.length; cellI++) {
+		let nextDiagType = 1; // Ensures end of sequence is treated as 2,1
+		if (cellI < cellList.length) {
+			nextDiagType = cellList[cellI][2];
+		}
+
+		if (prevDiagType === 2 && nextDiagType === 1) {
+			// Found an over-then-under sequence, which tends to constrain which holes will be valid
+			let prevI;
+			let currI;
+			let prevCell;
+			let currCell;
+
+			// Start at the over-diagonal and work backward until reaching an under-diagonal
+			prevI = cellI;
+			currI = prevI - 1;
+			while (currI >= 0 && cellList[currI][2] === 2) {
+				currCell = cellList[currI];
+				prevCell = currCell;
+				if (0 <= prevI && prevI < cellList.length) {
+					prevCell = cellList[prevI];
+				}
+
+				let currHoles = overDiagHoles(currCell);
+				let dist = snakeDistance(currCell, prevCell);
+				if (dist === 2 || dist === 0) {
+					// Tricky case that constrains hole order a lot
+					let prevHoles = underDiagHoles(prevCell);
+					let prevHole;
+					if (cellHoleDistance(currCell, prevHoles[0]) <= 1) {
+						prevHole = prevHoles[0];
+					} else {
+						prevHole = prevHoles[1];
+					}
+
+					if (cellHoleDistance(currCell, prevHole) === 0) {
+						// Previous hole is on this cell, so we can choose either order // TODO: make option
+						holeList[2 * currI + 1] = currHoles[0];
+						holeList[2 * currI] = currHoles[1];
+					} else {
+						// Previous hole not on cell, so order is forced
+						if (snakeDistance(prevHole, currHoles[0]) === 1) {
+							holeList[2 * currI + 1] = currHoles[0];
+							holeList[2 * currI] = currHoles[1];
+						} else {
+							holeList[2 * currI + 1] = currHoles[1];
+							holeList[2 * currI] = currHoles[0];
+						}
+					}
+				} else {
+					// Easy case that doesn't constrain hole order much
+					let prevHole = holeList[2 * prevI];
+					if (cellHoleDistance(currCell, prevHole) === 0) {
+						// Previous hole is on this cell, so we can choose either order // TODO: make option
+						holeList[2 * currI + 1] = currHoles[0];
+						holeList[2 * currI] = currHoles[1];
+					} else {
+						// Previous hole not on cell, so order is forced
+						if (snakeDistance(prevHole, currHoles[0]) === 1) {
+							holeList[2 * currI + 1] = currHoles[0];
+							holeList[2 * currI] = currHoles[1];
+						} else {
+							holeList[2 * currI + 1] = currHoles[1];
+							holeList[2 * currI] = currHoles[0];
+						}
+					}
+				}
+
+				prevI = currI;
+				currI -= 1;
+			}
+
+			// Start at the under-diagonal and work forward until reaching an over-diagonal
+			prevI = cellI - 1;
+			currI = prevI + 1;
+			while (currI < cellList.length && cellList[currI][2] === 1) {
+				currCell = cellList[currI];
+				prevCell = currCell;
+				if (0 <= prevI && prevI < cellList.length) {
+					prevCell = cellList[prevI];
+				}
+
+				let currHoles = underDiagHoles(currCell);
+				let dist = snakeDistance(currCell, prevCell);
+				if (dist === 2 || dist === 0) {
+					// Tricky case that constrains hole order a lot
+					let prevHoles = overDiagHoles(prevCell);
+					let prevHole;
+					if (cellHoleDistance(currCell, prevHoles[0]) <= 1) {
+						prevHole = prevHoles[0];
+					} else {
+						prevHole = prevHoles[1];
+					}
+
+					if (cellHoleDistance(currCell, prevHole) === 0) {
+						// Previous hole is on this cell, so we can choose either order // TODO: make option
+						holeList[2 * currI] = currHoles[0];
+						holeList[2 * currI + 1] = currHoles[1];
+					} else {
+						// Previous hole not on cell, so order is forced
+						if (snakeDistance(prevHole, currHoles[0]) === 1) {
+							holeList[2 * currI] = currHoles[0];
+							holeList[2 * currI + 1] = currHoles[1];
+						} else {
+							holeList[2 * currI] = currHoles[1];
+							holeList[2 * currI + 1] = currHoles[0];
+						}
+					}
+				} else {
+					// Easy case that doesn't constrain hole order much
+					let prevHole = holeList[2 * prevI + 1];
+					if (cellHoleDistance(currCell, prevHole) === 0) {
+						// Previous hole is on this cell, so we can choose either order // TODO: make option
+						holeList[2 * currI] = currHoles[0];
+						holeList[2 * currI + 1] = currHoles[1];
+					} else {
+						// Previous hole not on cell, so order is forced
+						if (snakeDistance(prevHole, currHoles[0]) === 1) {
+							holeList[2 * currI] = currHoles[0];
+							holeList[2 * currI + 1] = currHoles[1];
+						} else {
+							holeList[2 * currI] = currHoles[1];
+							holeList[2 * currI + 1] = currHoles[0];
+						}
+					}
+				}
+
+				prevI = currI;
+				currI += 1;
+			}
+		}
+
+		prevDiagType = nextDiagType;
+	}
+
+
+	return holeList;
+}
+
+// aka Manhattan/taxicab/rectilinear distance
+function snakeDistance(a, b) {
+	return Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]);
+}
+
+// returns the distance between a cell coord and a hole coord - zero if it is one of the four holes on the cell border
+function cellHoleDistance(cell, hole) {
+	let holeToLeft = (hole[0] <= cell[0]);
+	let holeAbove = (hole[1] <= cell[1]);
+	if (holeToLeft) {
+		if (holeAbove) {
+			return snakeDistance(hole, [cell[0], cell[1]]);
+		} else {
+			return snakeDistance(hole, [cell[0], cell[1] + 1]);
+		}
+	} else {
+		if (holeAbove) {
+			return snakeDistance(hole, [cell[0] + 1, cell[1]]);
+		} else {
+			return snakeDistance(hole, [cell[0] + 1, cell[1] + 1]);
+		}
+	}
+}
+
+function overDiagHoles(cell) {
+	return [
+		[cell[0], cell[1]],
+		[cell[0] + 1, cell[1] + 1]
+	];
+}
+
+function underDiagHoles(cell) {
+	return [
+		[cell[0] + 1, cell[1]],
+		[cell[0], cell[1] + 1]
+	];
 }
 
 function onMouseDown(evt) {
