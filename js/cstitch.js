@@ -460,24 +460,22 @@ function drawPath() {
 	
 	let slider = document.getElementById("animationslider");
 
-	let hue = 180;
 	let prev = path[0];
 	for (let i = 1; i < path.length * slider.value; i++) {
 		let next = path[i];
 
-		ctx.strokeStyle = `hsl(${hue}, 100%, 25%)`;
+		ctx.strokeStyle = 'black';
 		if (i % 2 === 0) {
-			// ctx.setLineDash([2,2]);
+			ctx.setLineDash([2,2]);
 		} else {
 			ctx.setLineDash([]);
 		}
 
 		ctx.beginPath();
-		ctx.moveTo(prev[0] * gridSize + gridSize / 2, prev[1] * gridSize + gridSize / 2);
-		ctx.lineTo(next[0] * gridSize + gridSize / 2, next[1] * gridSize + gridSize / 2);
+		ctx.moveTo(prev[0] * gridSize, prev[1] * gridSize);
+		ctx.lineTo(next[0] * gridSize, next[1] * gridSize);
 		ctx.stroke();
 
-		hue = (hue + 10) % 360;
 		prev = next;
 	}
 	ctx.setLineDash([]);
