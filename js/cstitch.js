@@ -7,33 +7,33 @@ if performance is an issue move grid lines to separate canvas so dont have to re
 */
 
 // SVG properties
-var aida;
-var width;
-var height;
+let aida;
+let width;
+let height;
 const gridSize = 20;
 
 // cross-stitch pattern initialising
-var patternWidth;
-var patternHeight;
-var pattern;
+let patternWidth;
+let patternHeight;
+let pattern;
 
 // misc styling
-var bgColor = "#EEEEEE";
+let bgColor = "#EEEEEE";
 const gridStyle = "rgba(0,0,0,.2)"; // todo: different grid style for dark backgrounds ie rgba(255,255,255,.2)
-var stitchStyle = "red";
-var backStyle = "red";
+let stitchStyle = "red";
+let backStyle = "red";
 const transparent = "rgba(0,0,0,0)";
 
 // mouse & cursor tile coordinates
-var mx;
-var my;
-var mouseDragging;
-var mouseTargetState;
-var cursorX;
-var cursorY;
+let mx;
+let my;
+let mouseDragging;
+let mouseTargetState;
+let cursorX;
+let cursorY;
 
 // stitching path
-var path;
+let path;
 
 function onLoad() {
 	aida = document.getElementById("aida");
@@ -47,9 +47,9 @@ function onLoad() {
 	mouseTargetState = 0;
 	
 	pattern = new Array(patternWidth);
-	for (var i = 0; i < patternWidth; i++) {
+	for (let i = 0; i < patternWidth; i++) {
 		pattern[i] = new Array(patternHeight);
-		for (var j = 0; j < patternHeight; j++) {
+		for (let j = 0; j < patternHeight; j++) {
 			pattern[i][j] = 0;
 		}
 	}
@@ -71,8 +71,8 @@ function mainLoop() {
 }
 
 function update() {
-	var time = new Date();
-	var millis = time.getMilliseconds();
+	const time = new Date();
+	const millis = time.getMilliseconds();
 
 	path = planPath(pattern);
 }
@@ -208,26 +208,26 @@ function draw() {
 }
 
 function drawBg() {
-	var ctx = aida.getContext('2d');
+	const ctx = aida.getContext('2d');
 
 	ctx.fillStyle = bgColor; // todo: change fill to be picked background colour
 	ctx.fillRect(0, 0, width, height);
 }
 
 function drawGridLines() {
-	var ctx = aida.getContext('2d');
+	const ctx = aida.getContext('2d');
 
 	ctx.strokeStyle = gridStyle;
 	ctx.lineWidth = 2;
 	
 	ctx.beginPath();
-	for (var i = 0; i <= width; i += gridSize) {
+	for (let i = 0; i <= width; i += gridSize) {
 		ctx.moveTo(i, 0);
 		ctx.lineTo(i, height);
 	}
 	ctx.stroke();
 	ctx.beginPath();
-	for (var i = 0; i <= height; i += gridSize) {
+	for (let i = 0; i <= height; i += gridSize) {
 		ctx.moveTo(0, i);
 		ctx.lineTo(width, i);
 	}
@@ -235,14 +235,14 @@ function drawGridLines() {
 }
 
 function drawStitches() {
-	var ctx = aida.getContext('2d');
-	
+	const ctx = aida.getContext('2d');
+
 	ctx.lineWidth = 2;
 	// forward slashes
 	ctx.strokeStyle = stitchStyle;
 	ctx.beginPath();	
-	for (var i = 0; i < patternWidth; i++) {
-		for (var j = 0; j < patternWidth; j++) {
+	for (let i = 0; i < patternWidth; i++) {
+		for (let j = 0; j < patternWidth; j++) {
 			if (pattern[i][j] == 1) {
 				ctx.moveTo((i)*gridSize,(j+1)*gridSize);
 				ctx.lineTo((i+1)*gridSize,(j)*gridSize);
@@ -254,8 +254,8 @@ function drawStitches() {
 	// back slashes
 	ctx.strokeStyle = backStyle;
 	ctx.beginPath();
-	for (var i = 0; i < patternWidth; i++) {
-		for (var j = 0; j < patternWidth; j++) {
+	for (let i = 0; i < patternWidth; i++) {
+		for (let j = 0; j < patternWidth; j++) {
 			if (pattern[i][j] == 1) {
 				ctx.moveTo((i+1)*gridSize,(j+1)*gridSize);
 				ctx.lineTo((i)*gridSize,(j)*gridSize);
@@ -266,7 +266,7 @@ function drawStitches() {
 }
 
 function drawCursor(gridX, gridY) {
-	var ctx = aida.getContext('2d');
+	const ctx = aida.getContext('2d');
 	// hover reticle
 	ctx.fillStyle = "rgba(0,0,0,.5)";
 	ctx.fillRect(gridX * gridSize, gridY * gridSize, gridSize, gridSize);
@@ -305,7 +305,7 @@ function testButton() {
 function onBlur(input) {
 	switch (input.id) {
 		case "col1":
-			var val = input.value;
+			const val = input.value;
 			// fixme
 			stitchStyle = input.value;
 			if (document.getElementById("lock").checked) {
@@ -323,7 +323,7 @@ function onBlur(input) {
 }
 
 function lockCheck(input) {
-	var col2 = document.getElementById("col2");
+	const col2 = document.getElementById("col2");
 	if (input.checked == true) {
 		col2.readOnly = true;
 		col2.value = document.getElementById("col1").value;
@@ -335,7 +335,7 @@ function lockCheck(input) {
 }
 
 function isValidColor(strColor) {
-	var s = new Option().style;
+	const s = new Option().style;
 	s.color = strColor;
 
 	// return 'false' if color wasn't assigned
