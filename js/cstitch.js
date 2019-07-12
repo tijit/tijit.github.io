@@ -254,7 +254,7 @@ function planPath(grid) {
 					}
 				} else {
 					// Easy case that doesn't constrain hole order much
-					let prevHole = holeList[2 * prevI];
+					let prevHole = holeList[2 * prevI + 1];
 					if (cellHoleDistance(currCell, prevHole) === 0) {
 						// Previous hole is on this cell, so we can choose either order // TODO: make option
 						holeList[2 * currI] = currHoles[0];
