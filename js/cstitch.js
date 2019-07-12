@@ -163,7 +163,7 @@ function onMouseMove(evt) {
 	cursorY = gridY(my);
 	
 	if (mouseDragging) {
-		pattern[cursorX][cursorY] = mouseTargetState;
+		addToPattern(cursorX, cursorY, mouseTargetState);
 	}
 }
 
@@ -191,9 +191,9 @@ function gridY(y0) {
 	return Math.min(Math.max(0, Math.floor(y0 / gridSize)), patternHeight-1);
 }
 
-function addToPattern(x,y) {
-	if (x > 0 && y > 0 && x < patternWidth && y < patternHeight) {
-		pattern[x][y] = (++pattern[x][y]) % 2;
+function addToPattern(x, y, state) {
+	if (x > 0 && y > 0 && x < patternWidth-1 && y < patternHeight-1) {
+		pattern[x][y] = state;
 	}
 }
 
@@ -201,10 +201,10 @@ function draw() {
 	drawBg();
 	drawGridLines();
 	drawStitches();
-	drawCursor(cursorX, cursorY);
 	if (path) {
 		drawPath();
 	}
+	drawCursor(cursorX, cursorY);
 }
 
 function drawBg() {
