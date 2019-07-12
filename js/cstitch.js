@@ -147,6 +147,7 @@ function onMouseDown(evt) {
 		case 0: // lb
 			mouseDragging = true;
 			mouseTargetState = (pattern[cursorX][cursorY]+1) % 2;
+			onMouseMove(evt);
 		break;
 		case 2: // rb
 			evt.preventDefault();
@@ -274,10 +275,12 @@ function drawCursor(gridX, gridY) {
 
 function drawPath() {
 	let ctx = aida.getContext('2d');
+	
+	let slider = document.getElementById("animationslider");
 
 	let hue = 180;
 	let prev = path[0];
-	for (let i = 1; i < path.length; i++) {
+	for (let i = 1; i < path.length * slider.value; i++) {
 		let next = path[i];
 
 		ctx.strokeStyle = `hsl(${hue}, 100%, 25%)`;
