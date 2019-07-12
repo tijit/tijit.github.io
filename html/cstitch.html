@@ -13,6 +13,7 @@ Jessica Trabilsie
 	</head>
 	<body onload="onLoad()"> 
 		<div class="container">
+			
 			<p class="title">
 				Cross Stitch
 			</p>
@@ -22,9 +23,14 @@ Jessica Trabilsie
 				<input type="text" id="col2" value="red" readonly="true" onblur="onBlur(this)"> <br/>
 				<label><input type="checkbox" id="lock" checked="on" onclick="lockCheck(this)">Locked</label> <br/>
 				<input type="text" id="colbg" value="#EEEEEE" onblur="onBlur(this)"> <br/>
-				
 			</div>
-			<canvas id="aida" width="600" height="600">
+			<div id="aidadiv">
+				<canvas id="aida" width="600px" height="600px">
+			</div>
+			<br />
+			<div id="slidercontainer">
+				<input id="animationslider" type="range" min="0" max="1" step="any" value="0">
+			</div>
 			</canvas>
 		</div>
 		<script src="../js/cstitch.js"></script>

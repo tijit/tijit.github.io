@@ -14,9 +14,20 @@ body {
 	font-weight:bold;
 }
 
-#aida {
+#aidadiv {
+	width:600px;
+	height:600px;
+	float:right;
+}
+
+#slidercontainer {
 	float:right;
 	width:600px;
+	height:32px;
+}
+
+#animationslider {
+	width:596px;
 }
 
 #aidabuttons {
