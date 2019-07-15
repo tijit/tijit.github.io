@@ -1,10 +1,19 @@
 // jessica trabilsie
 /*
 
+
+
 **TODO**
 if performance is an issue move grid lines to separate canvas so dont have to render them multiple times ?
 
 */
+
+class Point {
+	constructor(x=0, y=0) {
+		this.x = x;
+		this.y = y;
+	}
+}
 
 // SVG properties
 let aida;
@@ -25,12 +34,10 @@ let backStyle = "red";
 const transparent = "rgba(0,0,0,0)";
 
 // mouse & cursor tile coordinates
-let mx;
-let my;
+let mousePos = new Point();
 let mouseDragging;
 let mouseTargetState;
-let cursorX;
-let cursorY;
+let cursorPos = new Point();
 
 // stitching path
 let path;
@@ -326,7 +333,7 @@ function onMouseDown(evt) {
 	switch (evt.button) {
 		case 0: // lb
 			mouseDragging = true;
-			mouseTargetState = (pattern[cursorX][cursorY]+1) % 2;
+			mouseTargetState = (pattern[cursorPos.x][cursorPos.y]+1) % 2;
 			onMouseMove(evt); // idk if this is valid syntax but idc
 		break;
 		case 2: // rb
@@ -337,26 +344,26 @@ function onMouseDown(evt) {
 
 function onMouseMove(evt) {
 	// update cursor position
-	mx = evt.offsetX
-	my = evt.offsetY
+	mousePos.x = evt.offsetX
+	mousePos.y = evt.offsetY
 	
 	// todo: if difference between previous cursor position and new position dont touch use a line drawing algorithm to connect them
 	
-	cursorX = gridX(mx);
-	cursorY = gridY(my);
+	cursorPos.x = gridX(mousePos.x);
+	cursorPos.y = gridY(mousePos.y);
 	
 	if (mouseDragging) {
-		addToPattern(cursorX, cursorY, mouseTargetState);
+		addToPattern(cursorPos.x, cursorPos.y, mouseTargetState);
 	}
 }
 
 function onMouseLeave(evt) {
 	mouseDragging = false;
 	// hide cursor
-	mx = -gridSize;
-	my = -gridSize;
-	cursorX = -1;
-	cursorY = -1;
+	mousePos.x = -gridSize;
+	mousePos.y = -gridSize;
+	cursorPos.x = -1;
+	cursorPos.y = -1;
 }
 
 function onMouseUp(evt) {
@@ -374,7 +381,7 @@ function gridY(y0) {
 	return Math.min(Math.max(0, Math.floor(y0 / gridSize)), patternHeight-1);
 }
 
-function addToPattern(x, y, state) {
+function addToPattern(x, y, state) { // todo: change to be a point
 	if (x > 0 && y > 0 && x < patternWidth-1 && y < patternHeight-1) {
 		pattern[x][y] = state;
 	}
@@ -387,7 +394,7 @@ function draw() {
 	if (path) {
 		drawPath();
 	}
-	drawCursor(cursorX, cursorY);
+	drawCursor(cursorPos.x, cursorPos.y);
 }
 
 function drawBg() {
@@ -524,4 +531,5 @@ function isValidColor(strColor) {
 	// return 'false' if color wasn't assigned
 	return s.color == strColor.toLowerCase();
 }
+
 
