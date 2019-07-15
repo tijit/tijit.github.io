@@ -93,45 +93,50 @@ function planPath(grid) {
 	}
 
 	// find a place to start stitching // TODO: Allow user to specify this
-	let start = [];
+	let start = undefined;
 	for (let y = 0; y < grid[0].length; y++) {
 		for (let x = 0; x < grid.length; x++) {
 			if (state[x][y] === 1) {
-				start = [x, y];
+				start = new Point(x, y);
 				break;
 			}
 		}
-		if (start.length > 0) {
+		if (start !== undefined) {
 			break;
 		}
 	}
-	if (start.length === 0) {
+	if (start === undefined) {
 		return undefined; // TODO: Learn whether 'undefined' is good practice
 	}
 
 	// Generate order in which to visit cells
 	// Cells are visited in a greedy DFS pattern
-	const directions = [[0, -1], [+1, 0], [-1, 0], [0, +1]]; // TODO: Change order?
+	const directions = [
+		new Point(0, -1),
+		new Point(+1, 0),
+		new Point(-1, 0),
+		new Point(0, +1)
+	]; // TODO: Change order?
 	// Each cell will be in the list exactly twice - when it is visited for the first and last time
 	let stack = [start];
-	let cellList = []; // each element is [x, y, s], where s is 1 (under-diagonal) or 2 (over-diagonal)
+	let cellList = []; // each element is [cellPoint, s], where s is 1 (under-diagonal) or 2 (over-diagonal)
 	// Initial state
 	while (stack.length > 0) {
 		let curr = stack[stack.length - 1];
 
-		if (state[curr[0]][curr[1]] === 1) {
+		if (state[curr.x][curr.y] === 1) {
 			// Just entered this cell for the first time
-			state[curr[0]][curr[1]] = 2;
-			cellList.push([curr[0], curr[1], 1]);
+			state[curr.x][curr.y] = 2;
+			cellList.push([curr, 1]);
 		}
 
 		// Either just entered, or returned to this cell
 		let foundNext = false;
 		for (let i = 0; i < directions.length; i++) {
 			let dir = directions[i];
-			let next = [curr[0] + dir[0], curr[1] + dir[1]];
+			let next = new Point(curr.x + dir.x, curr.y + dir.y);
 			// TODO: Check whether next is in bounds of grid
-			if (state[next[0]][next[1]] === 1) {
+			if (state[next.x][next.y] === 1) {
 				// Valid next cell
 				foundNext = true;
 				stack.push(next);
@@ -143,7 +148,7 @@ function planPath(grid) {
 		}
 
 		// Nowhere to go, return to parent
-		cellList.push([curr[0], curr[1], 2]);
+		cellList.push([curr, 2]);
 		stack.pop();
 	}
 
@@ -154,7 +159,7 @@ function planPath(grid) {
 	for (let cellI = 0; cellI <= /* intentional! */ cellList.length; cellI++) {
 		let nextDiagType = 1; // Ensures end of sequence is treated as 2,1
 		if (cellI < cellList.length) {
-			nextDiagType = cellList[cellI][2];
+			nextDiagType = cellList[cellI][1];
 		}
 
 		if (prevDiagType === 2 && nextDiagType === 1) {
@@ -167,11 +172,11 @@ function planPath(grid) {
 			// Start at the over-diagonal and work backward until reaching an under-diagonal
 			prevI = cellI;
 			currI = prevI - 1;
-			while (currI >= 0 && cellList[currI][2] === 2) {
-				currCell = cellList[currI];
+			while (currI >= 0 && cellList[currI][1] === 2) {
+				currCell = cellList[currI][0];
 				prevCell = currCell;
 				if (0 <= prevI && prevI < cellList.length) {
-					prevCell = cellList[prevI];
+					prevCell = cellList[prevI][0];
 				}
 
 				let currHoles = overDiagHoles(currCell);
@@ -226,11 +231,11 @@ function planPath(grid) {
 			// Start at the under-diagonal and work forward until reaching an over-diagonal
 			prevI = cellI - 1;
 			currI = prevI + 1;
-			while (currI < cellList.length && cellList[currI][2] === 1) {
-				currCell = cellList[currI];
+			while (currI < cellList.length && cellList[currI][1] === 1) {
+				currCell = cellList[currI][0];
 				prevCell = currCell;
 				if (0 <= prevI && prevI < cellList.length) {
-					prevCell = cellList[prevI];
+					prevCell = cellList[prevI][0];
 				}
 
 				let currHoles = underDiagHoles(currCell);
@@ -292,39 +297,39 @@ function planPath(grid) {
 
 // aka Manhattan/taxicab/rectilinear distance
 function snakeDistance(a, b) {
-	return Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]);
+	return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
 }
 
 // returns the distance between a cell coord and a hole coord - zero if it is one of the four holes on the cell border
 function cellHoleDistance(cell, hole) {
-	let holeToLeft = (hole[0] <= cell[0]);
-	let holeAbove = (hole[1] <= cell[1]);
+	let holeToLeft = (hole.x <= cell.x);
+	let holeAbove = (hole.y <= cell.y);
 	if (holeToLeft) {
 		if (holeAbove) {
-			return snakeDistance(hole, [cell[0], cell[1]]);
+			return snakeDistance(hole, new Point(cell.x, cell.y));
 		} else {
-			return snakeDistance(hole, [cell[0], cell[1] + 1]);
+			return snakeDistance(hole, new Point(cell.x, cell.y + 1));
 		}
 	} else {
 		if (holeAbove) {
-			return snakeDistance(hole, [cell[0] + 1, cell[1]]);
+			return snakeDistance(hole, new Point(cell.x + 1, cell.y));
 		} else {
-			return snakeDistance(hole, [cell[0] + 1, cell[1] + 1]);
+			return snakeDistance(hole, new Point(cell.x + 1, cell.y + 1));
 		}
 	}
 }
 
 function overDiagHoles(cell) {
 	return [
-		[cell[0], cell[1]],
-		[cell[0] + 1, cell[1] + 1]
+		new Point(cell.x, cell.y),
+		new Point(cell.x + 1, cell.y + 1)
 	];
 }
 
 function underDiagHoles(cell) {
 	return [
-		[cell[0] + 1, cell[1]],
-		[cell[0], cell[1] + 1]
+		new Point(cell.x + 1, cell.y),
+		new Point(cell.x, cell.y + 1)
 	];
 }
 
@@ -479,8 +484,8 @@ function drawPath() {
 		}
 
 		ctx.beginPath();
-		ctx.moveTo(prev[0] * gridSize, prev[1] * gridSize);
-		ctx.lineTo(next[0] * gridSize, next[1] * gridSize);
+		ctx.moveTo(prev.x * gridSize, prev.y * gridSize);
+		ctx.lineTo(next.x * gridSize, next.y * gridSize);
 		ctx.stroke();
 
 		prev = next;
