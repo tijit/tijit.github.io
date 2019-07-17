@@ -10,10 +10,58 @@ if performance is an issue move grid lines to separate canvas so dont have to re
 
 class Point {
 	constructor(x=0, y=0) {
-		this.x = x;
-		this.y = y;
+		this._x = x;
+		this._y = y;
+	}
+
+	get x() {
+		return this._x;
+	}
+
+	get y() {
+		return this._y;
+	}
+
+	set x(val) {
+		throw "Points are immutable - setting x directly is not allowed.";
+	}
+
+	set y(val) {
+		throw "Points are immutable - setting y directly is not allowed.";
+	}
+
+	plus(other) {
+		return new Point(this._x + other._x, this._y + other._y);
+	}
+
+	minus(other) {
+		return new Point(this._x - other._x, this._y - other._y);
+	}
+
+	times(scalar) {
+		return new Point(scalar * this._x, scalar * this._y);
+	}
+
+	get rectilinearLength() {
+		// noinspection JSSuspiciousNameCombination
+		return Math.abs(this._x) + Math.abs(this._y);
+	}
+
+	// aka Manhattan/taxicab distance
+	static rectilinearDistance(a, b) {
+		return a.minus(b).rectilinearLength;
 	}
 }
+Point.Zero = new Point(0, 0);
+Point.Offscreen = new Point(-1, -1);
+Point.N = new Point(0, -1);
+Point.S = new Point(0, +1);
+Point.W = new Point(-1, 0);
+Point.E = new Point(+1, 0);
+Point.NW = Point.N.plus(Point.W);
+Point.NE = Point.N.plus(Point.E);
+Point.SW = Point.S.plus(Point.W);
+Point.SE = Point.S.plus(Point.E);
 
 // SVG properties
 let aida;
@@ -111,12 +159,7 @@ function planPath(grid) {
 
 	// Generate order in which to visit cells
 	// Cells are visited in a greedy DFS pattern
-	const directions = [
-		new Point(0, -1),
-		new Point(+1, 0),
-		new Point(-1, 0),
-		new Point(0, +1)
-	]; // TODO: Change order?
+	const directions = [Point.N, Point.E, Point.W, Point.S]; // TODO: Change order?
 	// Each cell will be in the list exactly twice - when it is visited for the first and last time
 	let stack = [start];
 	let cellList = []; // each element is [cellPoint, s], where s is 1 (under-diagonal) or 2 (over-diagonal)
@@ -134,7 +177,7 @@ function planPath(grid) {
 		let foundNext = false;
 		for (let i = 0; i < directions.length; i++) {
 			let dir = directions[i];
-			let next = new Point(curr.x + dir.x, curr.y + dir.y);
+			let next = curr.plus(dir);
 			// TODO: Check whether next is in bounds of grid
 			if (state[next.x][next.y] === 1) {
 				// Valid next cell
@@ -180,7 +223,7 @@ function planPath(grid) {
 				}
 
 				let currHoles = overDiagHoles(currCell);
-				let dist = snakeDistance(currCell, prevCell);
+				let dist = Point.rectilinearDistance(currCell, prevCell);
 				if (dist === 2 || dist === 0) {
 					// Tricky case that constrains hole order a lot
 					let prevHoles = underDiagHoles(prevCell);
@@ -197,7 +240,7 @@ function planPath(grid) {
 						holeList[2 * currI] = currHoles[1];
 					} else {
 						// Previous hole not on cell, so order is forced
-						if (snakeDistance(prevHole, currHoles[0]) === 1) {
+						if (Point.rectilinearDistance(prevHole, currHoles[0]) === 1) {
 							holeList[2 * currI + 1] = currHoles[0];
 							holeList[2 * currI] = currHoles[1];
 						} else {
@@ -214,7 +257,7 @@ function planPath(grid) {
 						holeList[2 * currI] = currHoles[1];
 					} else {
 						// Previous hole not on cell, so order is forced
-						if (snakeDistance(prevHole, currHoles[0]) === 1) {
+						if (Point.rectilinearDistance(prevHole, currHoles[0]) === 1) {
 							holeList[2 * currI + 1] = currHoles[0];
 							holeList[2 * currI] = currHoles[1];
 						} else {
@@ -239,7 +282,7 @@ function planPath(grid) {
 				}
 
 				let currHoles = underDiagHoles(currCell);
-				let dist = snakeDistance(currCell, prevCell);
+				let dist = Point.rectilinearDistance(currCell, prevCell);
 				if (dist === 2 || dist === 0) {
 					// Tricky case that constrains hole order a lot
 					let prevHoles = overDiagHoles(prevCell);
@@ -256,7 +299,7 @@ function planPath(grid) {
 						holeList[2 * currI + 1] = currHoles[1];
 					} else {
 						// Previous hole not on cell, so order is forced
-						if (snakeDistance(prevHole, currHoles[0]) === 1) {
+						if (Point.rectilinearDistance(prevHole, currHoles[0]) === 1) {
 							holeList[2 * currI] = currHoles[0];
 							holeList[2 * currI + 1] = currHoles[1];
 						} else {
@@ -273,7 +316,7 @@ function planPath(grid) {
 						holeList[2 * currI + 1] = currHoles[1];
 					} else {
 						// Previous hole not on cell, so order is forced
-						if (snakeDistance(prevHole, currHoles[0]) === 1) {
+						if (Point.rectilinearDistance(prevHole, currHoles[0]) === 1) {
 							holeList[2 * currI] = currHoles[0];
 							holeList[2 * currI + 1] = currHoles[1];
 						} else {
@@ -295,41 +338,36 @@ function planPath(grid) {
 	return holeList;
 }
 
-// aka Manhattan/taxicab/rectilinear distance
-function snakeDistance(a, b) {
-	return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
-}
-
 // returns the distance between a cell coord and a hole coord - zero if it is one of the four holes on the cell border
 function cellHoleDistance(cell, hole) {
 	let holeToLeft = (hole.x <= cell.x);
 	let holeAbove = (hole.y <= cell.y);
 	if (holeToLeft) {
 		if (holeAbove) {
-			return snakeDistance(hole, new Point(cell.x, cell.y));
+			return Point.rectilinearDistance(hole, cell);
 		} else {
-			return snakeDistance(hole, new Point(cell.x, cell.y + 1));
+			return Point.rectilinearDistance(hole, cell.plus(Point.S));
 		}
 	} else {
 		if (holeAbove) {
-			return snakeDistance(hole, new Point(cell.x + 1, cell.y));
+			return Point.rectilinearDistance(hole, cell.plus(Point.E));
 		} else {
-			return snakeDistance(hole, new Point(cell.x + 1, cell.y + 1));
+			return Point.rectilinearDistance(hole, cell.plus(Point.SE));
 		}
 	}
 }
 
 function overDiagHoles(cell) {
 	return [
-		new Point(cell.x, cell.y),
-		new Point(cell.x + 1, cell.y + 1)
+		cell,
+		cell.plus(Point.SE)
 	];
 }
 
 function underDiagHoles(cell) {
 	return [
-		new Point(cell.x + 1, cell.y),
-		new Point(cell.x, cell.y + 1)
+		cell.plus(Point.E),
+		cell.plus(Point.S)
 	];
 }
 
@@ -363,10 +401,8 @@ function onMouseMove(evt) {
 function onMouseLeave(evt) {
 	mouseDragging = false;
 	// hide cursor
-	mousePos.x = -gridSize;
-	mousePos.y = -gridSize;
-	cursorPos.x = -1;
-	cursorPos.y = -1;
+	mousePos = Point.Offscreen.times(gridSize);
+	cursorPos = Point.Offscreen;
 }
 
 function onMouseUp(evt) {
@@ -532,7 +568,7 @@ function isValidColor(strColor) {
 	s.color = strColor;
 
 	// return 'false' if color wasn't assigned
-	return s.color == strColor.toLowerCase();
+	return s.color === strColor.toLowerCase();
 }
 
 
