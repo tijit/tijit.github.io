@@ -45,6 +45,15 @@ class Point {
 	static rectilinearDistance(a, b) {
 		return a.minus(b).rectilinearLength;
 	}
+
+	toString() {
+		return JSON.stringify({ x: this._x, y: this._y });
+	}
+
+	static fromString(str) {
+		let obj = JSON.parse(str);
+		return new Point(obj.x, obj.y);
+	}
 }
 Point.Zero = new Point(0, 0);
 Point.Offscreen = new Point(-1, -1);
@@ -56,6 +65,39 @@ Point.NW = Point.N.plus(Point.W);
 Point.NE = Point.N.plus(Point.E);
 Point.SW = Point.S.plus(Point.W);
 Point.SE = Point.S.plus(Point.E);
+
+// A map where the keys are Points.
+class Grid {
+	constructor() {
+		this._map = new Map();
+	}
+
+	clone() {
+		let ret = new Grid();
+		ret._map = new Map(this._map);
+		return ret;
+	}
+
+	set(key, value) {
+		return this._map.set(key.toString(), value);
+	}
+
+	get(key) {
+		return this._map.get(key.toString());
+	}
+
+	has(key) {
+		return this._map.has(key.toString());
+	}
+
+	delete(key) {
+		return this._map.delete(key.toString());
+	}
+
+	get size() {
+		return this._map.size;
+	}
+}
 
 // SVG properties
 let aida;
@@ -95,11 +137,10 @@ function onLoad() {
 	mouseDragging = false;
 	mouseTargetState = 0;
 	
-	pattern = new Array(patternWidth);
+	pattern = new Grid();
 	for (let i = 0; i < patternWidth; i++) {
-		pattern[i] = new Array(patternHeight);
 		for (let j = 0; j < patternHeight; j++) {
-			pattern[i][j] = 0;
+			pattern.set(new Point(i, j), 0);
 		}
 	}
 	
@@ -128,18 +169,15 @@ function update() {
 
 function planPath(grid) {
 	// create empty initial state
-	// TODO: Make and use a util function to copy 2d arrays
-	let state = new Array(grid.length); // 0=banned, 1=needed, 2=half, 3=full // TODO: Use enum?
-	for (let i = 0; i < grid.length; i++) {
-		state[i] = grid[i].slice(); // .slice is javascript way to (shallow) copy
-	}
+	let state = grid.clone(); // 0=banned, 1=needed, 2=half, 3=full // TODO: Use enum?
 
 	// find a place to start stitching // TODO: Allow user to specify this
 	let start = undefined;
-	for (let y = 0; y < grid[0].length; y++) {
-		for (let x = 0; x < grid.length; x++) {
-			if (state[x][y] === 1) {
-				start = new Point(x, y);
+	for (let y = 0; y < patternHeight; y++) {
+		for (let x = 0; x < patternWidth; x++) {
+			let pos = new Point(x, y);
+			if (state.get(pos) === 1) {
+				start = pos;
 				break;
 			}
 		}
@@ -161,9 +199,9 @@ function planPath(grid) {
 	while (stack.length > 0) {
 		let curr = stack[stack.length - 1];
 
-		if (state[curr.x][curr.y] === 1) {
+		if (state.get(curr) === 1) {
 			// Just entered this cell for the first time
-			state[curr.x][curr.y] = 2;
+			state.set(curr,  2);
 			cellList.push([curr, 1]);
 		}
 
@@ -173,7 +211,7 @@ function planPath(grid) {
 			let dir = directions[i];
 			let next = curr.plus(dir);
 			// TODO: Check whether next is in bounds of grid
-			if (state[next.x][next.y] === 1) {
+			if (state.get(next) === 1) {
 				// Valid next cell
 				foundNext = true;
 				stack.push(next);
@@ -370,7 +408,7 @@ function onMouseDown(evt) {
 	switch (evt.button) {
 		case 0: // lb
 			mouseDragging = true;
-			mouseTargetState = (pattern[cursorPos.x][cursorPos.y]+1) % 2;
+			mouseTargetState = (pattern.get(cursorPos)+1) % 2;
 			onMouseMove(evt); // idk if this is valid syntax but idc
 		break;
 		case 2: // rb
@@ -416,7 +454,7 @@ function gridPoint(mousePoint) {
 
 function addToPattern(point, state) {
 	if (point.x > 0 && point.y > 0 && point.x < patternWidth-1 && point.y < patternHeight-1) {
-		pattern[point.x][point.y] = state;
+		pattern.set(point, state);
 	}
 }
 
@@ -466,7 +504,7 @@ function drawStitches() {
 	ctx.beginPath();
 	for (let i = 0; i < patternWidth; i++) {
 		for (let j = 0; j < patternWidth; j++) {
-			if (pattern[i][j] === 1) {
+			if (pattern.get(new Point(i, j)) === 1) {
 				ctx.moveTo((i)*gridSize,(j+1)*gridSize);
 				ctx.lineTo((i+1)*gridSize,(j)*gridSize);
 			}
@@ -479,7 +517,7 @@ function drawStitches() {
 	ctx.beginPath();
 	for (let i = 0; i < patternWidth; i++) {
 		for (let j = 0; j < patternWidth; j++) {
-			if (pattern[i][j] === 1) {
+			if (pattern.get(new Point(i, j)) === 1) {
 				ctx.moveTo((i+1)*gridSize,(j+1)*gridSize);
 				ctx.lineTo((i)*gridSize,(j)*gridSize);
 			}
