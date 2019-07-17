@@ -349,16 +349,14 @@ function onMouseDown(evt) {
 
 function onMouseMove(evt) {
 	// update cursor position
-	mousePos.x = evt.offsetX
-	mousePos.y = evt.offsetY
-	
+	mousePos = new Point(evt.offsetX, evt.offsetY);
+
 	// todo: if difference between previous cursor position and new position dont touch use a line drawing algorithm to connect them
-	
-	cursorPos.x = gridX(mousePos.x);
-	cursorPos.y = gridY(mousePos.y);
-	
+
+	cursorPos = gridPoint(mousePos);
+
 	if (mouseDragging) {
-		addToPattern(cursorPos.x, cursorPos.y, mouseTargetState);
+		addToPattern(cursorPos, mouseTargetState);
 	}
 }
 
@@ -379,16 +377,16 @@ function onContextMenu(evt) {
 	evt.preventDefault();
 }
 
-function gridX(x0) {
-	return Math.min(Math.max(0, Math.floor(x0 / gridSize)), patternWidth-1);
-}
-function gridY(y0) {
-	return Math.min(Math.max(0, Math.floor(y0 / gridSize)), patternHeight-1);
+function gridPoint(mousePoint) {
+	return new Point(
+		Math.min(Math.max(0, Math.floor(mousePoint.x / gridSize)), patternWidth-1),
+		Math.min(Math.max(0, Math.floor(mousePoint.y / gridSize)), patternHeight-1)
+	);
 }
 
-function addToPattern(x, y, state) { // todo: change to be a point
-	if (x > 0 && y > 0 && x < patternWidth-1 && y < patternHeight-1) {
-		pattern[x][y] = state;
+function addToPattern(point, state) {
+	if (point.x > 0 && point.y > 0 && point.x < patternWidth-1 && point.y < patternHeight-1) {
+		pattern[point.x][point.y] = state;
 	}
 }
 
@@ -399,7 +397,7 @@ function draw() {
 	if (path) {
 		drawPath();
 	}
-	drawCursor(cursorPos.x, cursorPos.y);
+	drawCursor(cursorPos);
 }
 
 function drawBg() {
@@ -435,10 +433,10 @@ function drawStitches() {
 	ctx.lineWidth = 2;
 	// forward slashes
 	ctx.strokeStyle = stitchStyle;
-	ctx.beginPath();	
+	ctx.beginPath();
 	for (let i = 0; i < patternWidth; i++) {
 		for (let j = 0; j < patternWidth; j++) {
-			if (pattern[i][j] == 1) {
+			if (pattern[i][j] === 1) {
 				ctx.moveTo((i)*gridSize,(j+1)*gridSize);
 				ctx.lineTo((i+1)*gridSize,(j)*gridSize);
 			}
@@ -451,7 +449,7 @@ function drawStitches() {
 	ctx.beginPath();
 	for (let i = 0; i < patternWidth; i++) {
 		for (let j = 0; j < patternWidth; j++) {
-			if (pattern[i][j] == 1) {
+			if (pattern[i][j] === 1) {
 				ctx.moveTo((i+1)*gridSize,(j+1)*gridSize);
 				ctx.lineTo((i)*gridSize,(j)*gridSize);
 			}
@@ -460,11 +458,11 @@ function drawStitches() {
 	ctx.stroke();
 }
 
-function drawCursor(gridX, gridY) {
+function drawCursor(gridPoint) {
 	const ctx = aida.getContext('2d');
 	// hover reticle
 	ctx.fillStyle = "rgba(0,0,0,.5)";
-	ctx.fillRect(gridX * gridSize, gridY * gridSize, gridSize, gridSize);
+	ctx.fillRect(gridPoint.x * gridSize, gridPoint.y * gridSize, gridSize, gridSize);
 }
 
 function drawPath() {
@@ -519,7 +517,7 @@ function onBlur(input) {
 
 function lockCheck(input) {
 	const col2 = document.getElementById("col2");
-	if (input.checked == true) {
+	if (input.checked === true) {
 		col2.readOnly = true;
 		col2.value = document.getElementById("col1").value;
 		backStyle = stitchStyle;
