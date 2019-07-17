@@ -90,10 +90,6 @@ class Grid {
 		return this._map.has(key.toString());
 	}
 
-	delete(key) {
-		return this._map.delete(key.toString());
-	}
-
 	get size() {
 		return this._map.size;
 	}
