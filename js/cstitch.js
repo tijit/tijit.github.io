@@ -7,11 +7,13 @@
 if performance is an issue move grid lines to separate canvas so dont have to render them multiple times ?
 
 */
+'use strict'; // Enable strict mode, so that some mistakes cause an exception rather than failing silently.
 
 class Point {
-	constructor(x=0, y=0) {
+	constructor(x, y) {
 		this._x = x;
 		this._y = y;
+		// TODO: Object.freeze(this)?
 	}
 
 	get x() {
@@ -20,14 +22,6 @@ class Point {
 
 	get y() {
 		return this._y;
-	}
-
-	set x(val) {
-		throw "Points are immutable - setting x directly is not allowed.";
-	}
-
-	set y(val) {
-		throw "Points are immutable - setting y directly is not allowed.";
 	}
 
 	plus(other) {
