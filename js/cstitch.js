@@ -53,11 +53,6 @@ class Point {
 		return Math.abs(this.x_) === Math.abs(this.y_);
 	}
 
-	get isPerfectStitch() {
-		// A perfect stitch is either a short orthogonal stitch, or a short diagonal stitch
-		return (this.isOrthogonal && this.rectilinearLength === 1) || (this.isDiagonal && this.rectilinearLength === 2);
-	}
-
 	toString() {
 		return JSON.stringify({ x: this.x_, y: this.y_ });
 	}
@@ -260,6 +255,7 @@ function planPath(grid) {
 		}
 
 		// Nowhere to go, return to parent
+		visitCount.set(curr, visitCount.get(curr) + 1);
 		cellList.push([curr, 2]);
 		stack.pop();
 	}
@@ -268,143 +264,26 @@ function planPath(grid) {
 		throw "Somehow an invalid cell list was generated";
 	}
 
+	if (cellList.length === 0) {
+		return [];
+	}
+
 	// Turn the list of cells to visit into a list of holes to visit
-	let holeList = new Array(2 * cellList.length); // Hole count is twice the cell-visit count
-	// Find everywhere in the sequence that does an over-diagonal (2) then an under-diagonal (1)
-	let prevDiagType = 2; // Ensures beginning of sequence is treated as 2,1
-	for (let cellI = 0; cellI <= /* intentional! */ cellList.length; cellI++) {
-		let nextDiagType = 1; // Ensures end of sequence is treated as 2,1
-		if (cellI < cellList.length) {
-			nextDiagType = cellList[cellI][1];
+	let holeList = [];
+	let prevHole = cellList[0][0]; // Pretend the needle went down through the top-left hole of the first cell
+	for (let i = 0; i < cellList.length; i++) {
+		let curr = cellList[i];
+		let next;
+		if (i + 1 < cellList.length) {
+			next = cellList[i + 1];
+		} else {
+			// Pretend there is an extra under-stitch on the same cell as the last over-stitch
+			next = [curr[0], 1];
 		}
 
-		if (prevDiagType === 2 && nextDiagType === 1) {
-			// Found an over-then-under sequence, which tends to constrain which holes will be valid
-			let prevI;
-			let currI;
-			let prevCell;
-			let currCell;
-
-			// Start at the over-diagonal and work backward until reaching an under-diagonal
-			prevI = cellI;
-			currI = prevI - 1;
-			while (currI >= 0 && cellList[currI][1] === 2) {
-				currCell = cellList[currI][0];
-				prevCell = currCell;
-				if (0 <= prevI && prevI < cellList.length) {
-					prevCell = cellList[prevI][0];
-				}
-
-				let currHoles = overDiagHoles(currCell);
-				let dist = Point.rectilinearDistance(currCell, prevCell);
-				if (dist === 2 || dist === 0) {
-					// Tricky case that constrains hole order a lot
-					let prevHoles = underDiagHoles(prevCell);
-					let prevHole;
-					if (cellHoleDistance(currCell, prevHoles[0]) <= 1) {
-						prevHole = prevHoles[0];
-					} else {
-						prevHole = prevHoles[1];
-					}
-
-					if (cellHoleDistance(currCell, prevHole) === 0) {
-						// Previous hole is on this cell, so we can choose either order // TODO: make option
-						holeList[2 * currI + 1] = currHoles[0];
-						holeList[2 * currI] = currHoles[1];
-					} else {
-						// Previous hole not on cell, so order is forced
-						if (Point.rectilinearDistance(prevHole, currHoles[0]) === 1) {
-							holeList[2 * currI + 1] = currHoles[0];
-							holeList[2 * currI] = currHoles[1];
-						} else {
-							holeList[2 * currI + 1] = currHoles[1];
-							holeList[2 * currI] = currHoles[0];
-						}
-					}
-				} else {
-					// Easy case that doesn't constrain hole order much
-					let prevHole = holeList[2 * prevI];
-					if (cellHoleDistance(currCell, prevHole) === 0) {
-						// Previous hole is on this cell, so we can choose either order // TODO: make option
-						holeList[2 * currI + 1] = currHoles[0];
-						holeList[2 * currI] = currHoles[1];
-					} else {
-						// Previous hole not on cell, so order is forced
-						if (Point.rectilinearDistance(prevHole, currHoles[0]) === 1) {
-							holeList[2 * currI + 1] = currHoles[0];
-							holeList[2 * currI] = currHoles[1];
-						} else {
-							holeList[2 * currI + 1] = currHoles[1];
-							holeList[2 * currI] = currHoles[0];
-						}
-					}
-				}
-
-				prevI = currI;
-				currI -= 1;
-			}
-
-			// Start at the under-diagonal and work forward until reaching an over-diagonal
-			prevI = cellI - 1;
-			currI = prevI + 1;
-			while (currI < cellList.length && cellList[currI][1] === 1) {
-				currCell = cellList[currI][0];
-				prevCell = currCell;
-				if (0 <= prevI && prevI < cellList.length) {
-					prevCell = cellList[prevI][0];
-				}
-
-				let currHoles = underDiagHoles(currCell);
-				let dist = Point.rectilinearDistance(currCell, prevCell);
-				if (dist === 2 || dist === 0) {
-					// Tricky case that constrains hole order a lot
-					let prevHoles = overDiagHoles(prevCell);
-					let prevHole;
-					if (cellHoleDistance(currCell, prevHoles[0]) <= 1) {
-						prevHole = prevHoles[0];
-					} else {
-						prevHole = prevHoles[1];
-					}
-
-					if (cellHoleDistance(currCell, prevHole) === 0) {
-						// Previous hole is on this cell, so we can choose either order // TODO: make option
-						holeList[2 * currI] = currHoles[0];
-						holeList[2 * currI + 1] = currHoles[1];
-					} else {
-						// Previous hole not on cell, so order is forced
-						if (Point.rectilinearDistance(prevHole, currHoles[0]) === 1) {
-							holeList[2 * currI] = currHoles[0];
-							holeList[2 * currI + 1] = currHoles[1];
-						} else {
-							holeList[2 * currI] = currHoles[1];
-							holeList[2 * currI + 1] = currHoles[0];
-						}
-					}
-				} else {
-					// Easy case that doesn't constrain hole order much
-					let prevHole = holeList[2 * prevI + 1];
-					if (cellHoleDistance(currCell, prevHole) === 0) {
-						// Previous hole is on this cell, so we can choose either order // TODO: make option
-						holeList[2 * currI] = currHoles[0];
-						holeList[2 * currI + 1] = currHoles[1];
-					} else {
-						// Previous hole not on cell, so order is forced
-						if (Point.rectilinearDistance(prevHole, currHoles[0]) === 1) {
-							holeList[2 * currI] = currHoles[0];
-							holeList[2 * currI + 1] = currHoles[1];
-						} else {
-							holeList[2 * currI] = currHoles[1];
-							holeList[2 * currI + 1] = currHoles[0];
-						}
-					}
-				}
-
-				prevI = currI;
-				currI += 1;
-			}
-		}
-
-		prevDiagType = nextDiagType;
+		let holes = bestHoleOrder(prevHole, curr, next);
+		holeList.push(holes[0], holes[1]);
+		prevHole = holeList[holeList.length - 1];
 	}
 
 	if (!isValidHoleList(holeList)) {
@@ -412,6 +291,44 @@ function planPath(grid) {
 	}
 
 	return holeList;
+}
+
+function bestHoleOrder(prevHole, currCellPair, nextCellPair) {
+	let [curr0, curr1] = diagHoles(currCellPair);
+
+	// Check which current holes can be reached from the previous hole
+	let prevToCurr0 = isPerfectStitch(prevHole, curr0);
+	let prevToCurr1 = isPerfectStitch(prevHole, curr1);
+	if (!prevToCurr0 && !prevToCurr1) {
+		throw `Not possible to reach ${currCellPair} (current) from ${prevHole} (previous)`;
+	}
+	if (prevToCurr0 && !prevToCurr1) {
+		// Order constrained by previous hole
+		return [curr0, curr1];
+	}
+	if (!prevToCurr0 && prevToCurr1) {
+		// Order constrained by previous hole
+		return [curr1, curr0];
+	}
+	// At this point, either current hole can be reached from previous hole, so look at next hole
+
+	// Check which current hole gives more flexibility to choose the next hole
+	let [next0, next1] = diagHoles(nextCellPair);
+	let curr0Flex = (isPerfectStitch(curr0, next0) ? 1 : 0) + (isPerfectStitch(curr0, next1) ? 1 : 0);
+	let curr1Flex = (isPerfectStitch(curr1, next0) ? 1 : 0) + (isPerfectStitch(curr1, next1) ? 1 : 0);
+	if (curr0Flex === 0 && curr1Flex === 0) {
+		throw `Not possible to reach ${nextCellPair} (next) from ${currCellPair}`;
+	}
+	if (curr0Flex > curr1Flex) {
+		// curr0 is better for next stitch, so put it last
+		return [curr1, curr0];
+	}
+	if (curr0Flex < curr1Flex) {
+		// curr1 is better for next stitch, so put it last
+		return [curr0, curr1];
+	}
+	// Either order is equally good, so we can choose whichever
+	return [curr0, curr1]; // TODO: Make this an option, eg. prefer vertical lines behind canvas
 }
 
 // cellList must have format [[point, s], [point, s], ...], where s is 1 for under-diagonals and 2 for over-diagonals
@@ -475,20 +392,22 @@ function isValidCellList(cellList) {
 // does not check whether under-diagonals are done before over-diagonals, or whether every cell has two stitches
 function isValidHoleList(holeList) {
 	for (let i = 1; i < holeList.length; i++) {
-		let stitch = holeList[i].minus(holeList[i - 1]);
+		let prev = holeList[i - 1];
+		let curr = holeList[i];
+		let diff = curr.minus(prev);
 		if (i % 2 === 1) {
 			// First stitch (and every second stitch) must be diagonal
-			if (!stitch.isDiagonal) {
+			if (!diff.isDiagonal) {
 				return false;
 			}
 		} else {
 			// Second stitch (and every second stitch) must be orthogonal
-			if (!stitch.isOrthogonal) {
+			if (!diff.isOrthogonal) {
 				return false;
 			}
 		}
 		// Every stitch must be "perfect" (short)
-		if (!stitch.isPerfectStitch) {
+		if (!isPerfectStitch(prev, curr)) {
 			return false;
 		}
 	}
@@ -515,6 +434,20 @@ function cellHoleDistance(cell, hole) {
 	}
 }
 
+// cellPair is [point, stitchType]
+function diagHoles(cellPair) {
+	let cell = cellPair[0];
+	let stitch = cellPair[1];
+
+	if (stitch === 1) {
+		return underDiagHoles(cell);
+	} else if (stitch === 2) {
+		return overDiagHoles(cell);
+	} else {
+		throw "Weird stitch"
+	}
+}
+
 function overDiagHoles(cell) {
 	return [
 		cell,
@@ -528,6 +461,13 @@ function underDiagHoles(cell) {
 		cell.plus(Point.S)
 	];
 }
+
+// A perfect stitch is either a short orthogonal stitch, or a short diagonal stitch
+function isPerfectStitch(hole1, hole2) {
+	let diff = hole2.minus(hole1);
+	return (diff.isOrthogonal && diff.rectilinearLength === 1) || (diff.isDiagonal && diff.rectilinearLength === 2);
+}
+
 
 function onMouseDown(evt) {
 	evt.preventDefault();
