@@ -72,6 +72,7 @@ class Point {
 		return a.minus(b).rectilinearLength;
 	}
 
+	// TODO: Remove?
 	static* pointsInBox(minX, minY, maxX, maxY) {
 		for (let y = minY; y <= maxY; y++) {
 			for (let x = minX; x <= maxX; x++) {
@@ -139,6 +140,12 @@ class Grid {
 
 	get size() {
 		return this.map_.size;
+	}
+
+	*points() {
+		for (let str of this.map_.keys()) {
+			yield Point.fromString(str);
+		}
 	}
 }
 
@@ -208,10 +215,11 @@ function update() {
 function planPath(grid) {
 	// find a place to start stitching // TODO: Allow user to specify this
 	let start = undefined;
-	for (let pos of Point.pointsInBox(0, 0, patternWidth - 1, patternHeight - 1)) {
+	for (let pos of grid.points()) {
 		if (grid.get(pos) === 1) {
-			start = pos;
-			break;
+			if (start === undefined || (pos.y < start.y) || (pos.y === start.y && pos.x < start.x)) {
+				start = pos;
+			}
 		}
 	}
 	if (start === undefined) {
@@ -618,7 +626,7 @@ function drawStitches() {
 	// forward slashes
 	ctx.strokeStyle = stitchStyle;
 	ctx.beginPath();
-	for (let pos of Point.pointsInBox(0, 0, patternWidth - 1, patternHeight - 1)) {
+	for (let pos of pattern.points()) {
 		if (pattern.get(pos) === 1) {
 			ctx.moveTo((pos.x)*gridSize,(pos.y+1)*gridSize);
 			ctx.lineTo((pos.x+1)*gridSize,(pos.y)*gridSize);
@@ -629,7 +637,7 @@ function drawStitches() {
 	// back slashes
 	ctx.strokeStyle = backStyle;
 	ctx.beginPath();
-	for (let pos of Point.pointsInBox(0, 0, patternWidth - 1, patternHeight - 1)) {
+	for (let pos of pattern.points()) {
 		if (pattern.get(pos) === 1) {
 			ctx.moveTo((pos.x+1)*gridSize,(pos.y+1)*gridSize);
 			ctx.lineTo((pos.x)*gridSize,(pos.y)*gridSize);
