@@ -36,13 +36,9 @@ class Point {
 		return new Point(scalar * this._x, scalar * this._y);
 	}
 
+	// aka Manhattan/taxicab length
 	get rectilinearLength() {
 		return Math.abs(this._x) + Math.abs(this._y);
-	}
-
-	// aka Manhattan/taxicab distance
-	static rectilinearDistance(a, b) {
-		return a.minus(b).rectilinearLength;
 	}
 
 	get isOrthogonal() {
@@ -69,6 +65,19 @@ class Point {
 	static fromString(str) {
 		let obj = JSON.parse(str);
 		return new Point(obj.x, obj.y);
+	}
+
+	// aka Manhattan/taxicab distance
+	static rectilinearDistance(a, b) {
+		return a.minus(b).rectilinearLength;
+	}
+
+	static forEachPointInBox(minX, minY, maxX, maxY, callback) {
+		for (let y = minY; y <= maxY; y++) {
+			for (let x = minX; x <= maxX; x++) {
+				callback(new Point(x, y));
+			}
+		}
 	}
 }
 Point.Zero = new Point(0, 0);
@@ -150,12 +159,10 @@ function onLoad() {
 	mouseTargetState = 0;
 	
 	pattern = new Grid();
-	for (let i = 0; i < patternWidth; i++) {
-		for (let j = 0; j < patternHeight; j++) {
-			pattern.set(new Point(i, j), 0);
-		}
-	}
-	
+	Point.forEachPointInBox(0, 0, patternWidth - 1, patternHeight - 1, function (pos) {
+		pattern.set(pos, 0);
+	});
+
 	aida.addEventListener("mousedown", onMouseDown);
 	aida.addEventListener("mousemove", onMouseMove);
 	aida.addEventListener("mouseleave", onMouseLeave);
@@ -185,18 +192,11 @@ function planPath(grid) {
 
 	// find a place to start stitching // TODO: Allow user to specify this
 	let start = undefined;
-	for (let y = 0; y < patternHeight; y++) {
-		for (let x = 0; x < patternWidth; x++) {
-			let pos = new Point(x, y);
-			if (state.get(pos) === 1) {
-				start = pos;
-				break;
-			}
+	Point.forEachPointInBox(0, 0, patternWidth - 1, patternHeight - 1, function (pos) {
+		if (start === undefined && state.get(pos) === 1) {
+			start = pos;
 		}
-		if (start !== undefined) {
-			break;
-		}
-	}
+	});
 	if (start === undefined) {
 		return undefined; // TODO: Learn whether 'undefined' is good practice
 	}
@@ -603,27 +603,23 @@ function drawStitches() {
 	// forward slashes
 	ctx.strokeStyle = stitchStyle;
 	ctx.beginPath();
-	for (let i = 0; i < patternWidth; i++) {
-		for (let j = 0; j < patternWidth; j++) {
-			if (pattern.get(new Point(i, j)) === 1) {
-				ctx.moveTo((i)*gridSize,(j+1)*gridSize);
-				ctx.lineTo((i+1)*gridSize,(j)*gridSize);
-			}
+	Point.forEachPointInBox(0, 0, patternWidth - 1, patternHeight - 1, function (pos) {
+		if (pattern.get(pos) === 1) {
+			ctx.moveTo((pos.x)*gridSize,(pos.y+1)*gridSize);
+			ctx.lineTo((pos.x+1)*gridSize,(pos.y)*gridSize);
 		}
-	}
+	});
 	ctx.stroke();
 	
 	// back slashes
 	ctx.strokeStyle = backStyle;
 	ctx.beginPath();
-	for (let i = 0; i < patternWidth; i++) {
-		for (let j = 0; j < patternWidth; j++) {
-			if (pattern.get(new Point(i, j)) === 1) {
-				ctx.moveTo((i+1)*gridSize,(j+1)*gridSize);
-				ctx.lineTo((i)*gridSize,(j)*gridSize);
-			}
+	Point.forEachPointInBox(0, 0, patternWidth - 1, patternHeight - 1, function (pos) {
+		if (pattern.get(pos) === 1) {
+			ctx.moveTo((pos.x+1)*gridSize,(pos.y+1)*gridSize);
+			ctx.lineTo((pos.x)*gridSize,(pos.y)*gridSize);
 		}
-	}
+	});
 	ctx.stroke();
 }
 
