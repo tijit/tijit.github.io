@@ -91,16 +91,38 @@ Point.NE = Point.N.plus(Point.E);
 Point.SW = Point.S.plus(Point.W);
 Point.SE = Point.S.plus(Point.E);
 
-// A map where the keys are Points.
-class Grid {
-	constructor() {
-		this.map_ = new Map();
+// A map with a default value
+class DefaultMap extends Map {
+	constructor(defaultValue) {
+		super();
+		if (defaultValue === undefined) {
+			throw "DefaultMap needs a default value";
+		}
+		this.defaultValue_ = defaultValue;
 	}
 
-	clone() {
-		let ret = new Grid();
-		ret.map_ = new Map(this.map_);
-		return ret;
+	set(key, value) {
+		if (value === this.defaultValue_) {
+			super.delete(key);
+		} else {
+			super.set(key, value);
+		}
+		return this;
+	}
+
+	get(key) {
+		if (super.has(key)) {
+			return super.get(key);
+		} else {
+			return this.defaultValue_;
+		}
+	}
+}
+
+// A map where the keys are Points.
+class Grid {
+	constructor(defaultValue) {
+		this.map_ = new DefaultMap(defaultValue);
 	}
 
 	set(key, value) {
@@ -158,10 +180,7 @@ function onLoad() {
 	mouseDragging = false;
 	mouseTargetState = 0;
 	
-	pattern = new Grid();
-	for (let pos of Point.pointsInBox(0, 0, patternWidth - 1, patternHeight - 1)) {
-		pattern.set(pos, 0);
-	}
+	pattern = new Grid(0);
 
 	aida.addEventListener("mousedown", onMouseDown);
 	aida.addEventListener("mousemove", onMouseMove);
@@ -187,13 +206,10 @@ function update() {
 }
 
 function planPath(grid) {
-	// create empty initial state
-	let state = grid.clone(); // 0=banned, 1=needed, 2=half, 3=full // TODO: Use enum?
-
 	// find a place to start stitching // TODO: Allow user to specify this
 	let start = undefined;
 	for (let pos of Point.pointsInBox(0, 0, patternWidth - 1, patternHeight - 1)) {
-		if (state.get(pos) === 1) {
+		if (grid.get(pos) === 1) {
 			start = pos;
 			break;
 		}
@@ -206,15 +222,16 @@ function planPath(grid) {
 	// Cells are visited in a greedy DFS pattern
 	const directions = [Point.N, Point.E, Point.W, Point.S]; // TODO: Change order?
 	// Each cell will be in the list exactly twice - when it is visited for the first and last time
+	let visitCount = new Grid(0);
 	let stack = [start];
 	let cellList = []; // each element is [cellPoint, s], where s is 1 (under-diagonal) or 2 (over-diagonal)
 	// Initial state
 	while (stack.length > 0) {
 		let curr = stack[stack.length - 1];
 
-		if (state.get(curr) === 1) {
+		if (visitCount.get(curr) === 0) {
 			// Just entered this cell for the first time
-			state.set(curr,  2);
+			visitCount.set(curr,  1);
 			cellList.push([curr, 1]);
 		}
 
@@ -223,8 +240,7 @@ function planPath(grid) {
 		for (let i = 0; i < directions.length; i++) {
 			let dir = directions[i];
 			let next = curr.plus(dir);
-			// TODO: Check whether next is in bounds of grid
-			if (state.get(next) === 1) {
+			if (grid.get(next) === 1 && visitCount.get(next) === 0) {
 				// Valid next cell
 				foundNext = true;
 				stack.push(next);
@@ -392,7 +408,7 @@ function planPath(grid) {
 
 // cellList must have format [[point, s], [point, s], ...], where s is 1 for under-diagonals and 2 for over-diagonals
 function isValidCellList(cellList) {
-	let visitCount = new Grid();
+	let visitCount = new Grid(0);
 
 	for (let i = 0; i < cellList.length; i++) {
 		let currCell = cellList[i][0];
@@ -555,9 +571,7 @@ function gridPoint(mousePoint) {
 }
 
 function addToPattern(point, state) {
-	if (point.x > 0 && point.y > 0 && point.x < patternWidth-1 && point.y < patternHeight-1) {
-		pattern.set(point, state);
-	}
+	pattern.set(point, state);
 }
 
 function draw() {
