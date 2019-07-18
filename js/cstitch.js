@@ -11,46 +11,46 @@ if performance is an issue move grid lines to separate canvas so dont have to re
 
 class Point {
 	constructor(x, y) {
-		this._x = x;
-		this._y = y;
+		this.x_ = x;
+		this.y_ = y;
 		// TODO: Object.freeze(this)?
 	}
 
 	get x() {
-		return this._x;
+		return this.x_;
 	}
 
 	get y() {
-		return this._y;
+		return this.y_;
 	}
 
 	plus(other) {
-		return new Point(this._x + other._x, this._y + other._y);
+		return new Point(this.x_ + other.x_, this.y_ + other.y_);
 	}
 
 	minus(other) {
-		return new Point(this._x - other._x, this._y - other._y);
+		return new Point(this.x_ - other.x_, this.y_ - other.y_);
 	}
 
 	times(scalar) {
-		return new Point(scalar * this._x, scalar * this._y);
+		return new Point(scalar * this.x_, scalar * this.y_);
 	}
 
 	// aka Manhattan/taxicab length
 	get rectilinearLength() {
-		return Math.abs(this._x) + Math.abs(this._y);
+		return Math.abs(this.x_) + Math.abs(this.y_);
 	}
 
 	get isOrthogonal() {
 		// returns whether this point is on one of the four orthogonal rays from the origin
 		// true for origin point also
-		return (this._x === 0) || (this._y === 0);
+		return (this.x_ === 0) || (this.y_ === 0);
 	}
 
 	get isDiagonal() {
 		// returns whether this point is on one of the four diagonal rays from the origin
 		// true for origin point also
-		return Math.abs(this._x) === Math.abs(this._y);
+		return Math.abs(this.x_) === Math.abs(this.y_);
 	}
 
 	get isPerfectStitch() {
@@ -59,7 +59,7 @@ class Point {
 	}
 
 	toString() {
-		return JSON.stringify({ x: this._x, y: this._y });
+		return JSON.stringify({ x: this.x_, y: this.y_ });
 	}
 
 	static fromString(str) {
@@ -94,29 +94,29 @@ Point.SE = Point.S.plus(Point.E);
 // A map where the keys are Points.
 class Grid {
 	constructor() {
-		this._map = new Map();
+		this.map_ = new Map();
 	}
 
 	clone() {
 		let ret = new Grid();
-		ret._map = new Map(this._map);
+		ret.map_ = new Map(this.map_);
 		return ret;
 	}
 
 	set(key, value) {
-		return this._map.set(key.toString(), value);
+		return this.map_.set(key.toString(), value);
 	}
 
 	get(key) {
-		return this._map.get(key.toString());
+		return this.map_.get(key.toString());
 	}
 
 	has(key) {
-		return this._map.has(key.toString());
+		return this.map_.has(key.toString());
 	}
 
 	get size() {
-		return this._map.size;
+		return this.map_.size;
 	}
 }
 
