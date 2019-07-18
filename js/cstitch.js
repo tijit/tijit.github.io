@@ -37,13 +37,29 @@ class Point {
 	}
 
 	get rectilinearLength() {
-		// noinspection JSSuspiciousNameCombination
 		return Math.abs(this._x) + Math.abs(this._y);
 	}
 
 	// aka Manhattan/taxicab distance
 	static rectilinearDistance(a, b) {
 		return a.minus(b).rectilinearLength;
+	}
+
+	get isOrthogonal() {
+		// returns whether this point is on one of the four orthogonal rays from the origin
+		// true for origin point also
+		return (this._x === 0) || (this._y === 0);
+	}
+
+	get isDiagonal() {
+		// returns whether this point is on one of the four diagonal rays from the origin
+		// true for origin point also
+		return Math.abs(this._x) === Math.abs(this._y);
+	}
+
+	get isPerfectStitch() {
+		// A perfect stitch is either a short orthogonal stitch, or a short diagonal stitch
+		return (this.isOrthogonal && this.rectilinearLength === 1) || (this.isDiagonal && this.rectilinearLength === 2);
 	}
 
 	toString() {
@@ -223,6 +239,10 @@ function planPath(grid) {
 		stack.pop();
 	}
 
+	if (!isValidCellList(cellList)) {
+		throw "Somehow an invalid cell list was generated";
+	}
+
 	// Turn the list of cells to visit into a list of holes to visit
 	let holeList = new Array(2 * cellList.length); // Hole count is twice the cell-visit count
 	// Find everywhere in the sequence that does an over-diagonal (2) then an under-diagonal (1)
@@ -362,8 +382,93 @@ function planPath(grid) {
 		prevDiagType = nextDiagType;
 	}
 
+	if (!isValidHoleList(holeList)) {
+		throw "Somehow an invalid hole list was generated";
+	}
 
 	return holeList;
+}
+
+// cellList must have format [[point, s], [point, s], ...], where s is 1 for under-diagonals and 2 for over-diagonals
+function isValidCellList(cellList) {
+	let visitCount = new Grid();
+
+	for (let i = 0; i < cellList.length; i++) {
+		let currCell = cellList[i][0];
+		let currStitch = cellList[i][1];
+		switch (currStitch) {
+			case 1:
+				// This should be the first time the cell is visited
+				if (visitCount.has(currCell)) {
+					return false;
+				}
+				break;
+			case 2:
+				// This should be the second time the cell is visited
+				if (!visitCount.has(currCell) || (visitCount.get(currCell) !== 1)) {
+					return false;
+				}
+				break;
+			default:
+				// Stitch must be 1 or 2
+				return false;
+		}
+		visitCount.set(currCell, currStitch);
+
+		if (i === 0) {
+			continue;
+		}
+
+		let prevCell = cellList[i - 1][0];
+		let prevStitch = cellList[i - 1][1];
+		let dist = Point.rectilinearDistance(prevCell, currCell);
+		if (prevStitch === currStitch) {
+			// over-diagonal twice, or under-diagonal twice. must be on adjacent cells.
+			if (dist !== 1) {
+				return false;
+			}
+		} else if (prevStitch === 1 && currStitch === 2) {
+			// under-diagonal then over-diagonal. must be on same cell.
+			if (dist !== 0) {
+				return false;
+			}
+		} else if (prevStitch === 2 && currStitch === 1) {
+			// over-diagonal then under-diagonal, cells must be a distance 2 from each other.
+			if (dist !== 2) {
+				return false;
+			}
+		}
+	}
+
+	// TODO: Check that every cell has been visited exactly zero or two times
+
+	return true;
+}
+
+// hole must be an array of points, representing the order to visit the holes
+// checks that stitches are unit length and alternate between in-front-of-canvas (diagonal) and behind-canvas (orthogonal)
+// does not check whether under-diagonals are done before over-diagonals, or whether every cell has two stitches
+function isValidHoleList(holeList) {
+	for (let i = 1; i < holeList.length; i++) {
+		let stitch = holeList[i].minus(holeList[i - 1]);
+		if (i % 2 === 1) {
+			// First stitch (and every second stitch) must be diagonal
+			if (!stitch.isDiagonal) {
+				return false;
+			}
+		} else {
+			// Second stitch (and every second stitch) must be orthogonal
+			if (!stitch.isOrthogonal) {
+				return false;
+			}
+		}
+		// Every stitch must be "perfect" (short)
+		if (!stitch.isPerfectStitch) {
+			return false;
+		}
+	}
+
+	return true;
 }
 
 // returns the distance between a cell coord and a hole coord - zero if it is one of the four holes on the cell border
