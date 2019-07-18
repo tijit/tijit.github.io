@@ -72,10 +72,10 @@ class Point {
 		return a.minus(b).rectilinearLength;
 	}
 
-	static forEachPointInBox(minX, minY, maxX, maxY, callback) {
+	static* pointsInBox(minX, minY, maxX, maxY) {
 		for (let y = minY; y <= maxY; y++) {
 			for (let x = minX; x <= maxX; x++) {
-				callback(new Point(x, y));
+				yield new Point(x, y);
 			}
 		}
 	}
@@ -159,9 +159,9 @@ function onLoad() {
 	mouseTargetState = 0;
 	
 	pattern = new Grid();
-	Point.forEachPointInBox(0, 0, patternWidth - 1, patternHeight - 1, function (pos) {
+	for (let pos of Point.pointsInBox(0, 0, patternWidth - 1, patternHeight - 1)) {
 		pattern.set(pos, 0);
-	});
+	}
 
 	aida.addEventListener("mousedown", onMouseDown);
 	aida.addEventListener("mousemove", onMouseMove);
@@ -192,11 +192,12 @@ function planPath(grid) {
 
 	// find a place to start stitching // TODO: Allow user to specify this
 	let start = undefined;
-	Point.forEachPointInBox(0, 0, patternWidth - 1, patternHeight - 1, function (pos) {
-		if (start === undefined && state.get(pos) === 1) {
+	for (let pos of Point.pointsInBox(0, 0, patternWidth - 1, patternHeight - 1)) {
+		if (state.get(pos) === 1) {
 			start = pos;
+			break;
 		}
-	});
+	}
 	if (start === undefined) {
 		return undefined; // TODO: Learn whether 'undefined' is good practice
 	}
@@ -603,23 +604,23 @@ function drawStitches() {
 	// forward slashes
 	ctx.strokeStyle = stitchStyle;
 	ctx.beginPath();
-	Point.forEachPointInBox(0, 0, patternWidth - 1, patternHeight - 1, function (pos) {
+	for (let pos of Point.pointsInBox(0, 0, patternWidth - 1, patternHeight - 1)) {
 		if (pattern.get(pos) === 1) {
 			ctx.moveTo((pos.x)*gridSize,(pos.y+1)*gridSize);
 			ctx.lineTo((pos.x+1)*gridSize,(pos.y)*gridSize);
 		}
-	});
+	}
 	ctx.stroke();
 	
 	// back slashes
 	ctx.strokeStyle = backStyle;
 	ctx.beginPath();
-	Point.forEachPointInBox(0, 0, patternWidth - 1, patternHeight - 1, function (pos) {
+	for (let pos of Point.pointsInBox(0, 0, patternWidth - 1, patternHeight - 1)) {
 		if (pattern.get(pos) === 1) {
 			ctx.moveTo((pos.x+1)*gridSize,(pos.y+1)*gridSize);
 			ctx.lineTo((pos.x)*gridSize,(pos.y)*gridSize);
 		}
-	});
+	}
 	ctx.stroke();
 }
 
